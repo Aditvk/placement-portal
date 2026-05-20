@@ -1,0 +1,105 @@
+Adit K
+
++91 7406303005|aditvk27@gmail.com |Bengaluru, India|linkedin.com/in/aditk27
+
+Objective
+
+2nd-year CSE student at Manipal University Jaipur with a focus on cybersecurity and AI/ML. Familiar with Linux, SQL, network
+
+security, machine learning algorithms, and security frameworks through coursework and projects. Looking for an internship
+
+opportunity to gain practical experience.
+
+Education
+
+Manipal University Jaipur Jaipur, Rajasthan
+
+Bachelor of Technology – Computer Science and Engineering (IoT & Intelligent Systems) 2023 – Present
+
+•2nd Year — CGPA: 8.54 — Coursework: Cybersecurity, Cryptography, AI/ML, DBMS, Computer Networks, Data Structures
+
+• 2X Dean’s List – Semester 3(GPA: 9+)
+
+Certifications
+
+Google: Foundations of Cybersecurity, Connect and Protect: Networks and Network Security, Play It Safe: Manage Security
+
+Risks, Tools of the Trade: Linux and SQL, Assets, Threats and Vulnerabilities
+
+Cisco: CCNA: Introduction to Networking, CCNA: Switching, Routing and Wireless Essentials
+
+Others: BITS Pilani – Data Structures and Algorithms, NPTEL – Introduction to Programming Using Java, Database
+
+Management Systems
+
+Technical Skills
+
+Cybersecurity: Network Security, SIEM Tools, Risk Management, Playbooks, Frameworks and Controls, OS Hardening, Threat
+
+Analysis, Encryption, Hashing, Cryptography, Attack Types (DoS, MitM, SYN Flood)
+
+AI / ML: Supervised Learning, Classification (KNN, Decision Tree, Naive Bayes, SVM, Random Forest), Regression, Neural
+
+Networks, Deep Learning (basics), K-Means Clustering, PCA, Model Evaluation Metrics (Accuracy, F1, Confusion Matrix, AUC)
+
+Networking: TCP/IP, VPN, Routing (OSPF, RIP), Switching, NAT, DHCP, Cisco Packet Tracer
+
+Tools and Technologies: Python (scikit-learn, pandas, numpy), Linux CLI, SQL, Java, Git, Arduino, ESP32, VirtualBox, Kali
+
+Linux
+
+Experience
+
+Student Placement Coordinator 2025 – Present
+
+Manipal University Jaipur Jaipur, Rajasthan
+
+•Appointed as Student Placement Coordinator at MUJ, facilitating communication between students and the placement cell
+
+•Assist in coordinating campus recruitment drives, company interactions, and student preparation activities
+
+Head of Graphic Design 2025 – Present
+
+LearnIT Club – Official Club, Department of Information Technology, MUJ Jaipur, Rajasthan
+
+•Leading the graphic design vertical of LearnIT, an official club under the Department of Information Technology at MUJ
+
+•Design promotional materials, event posters, and digital content for club activities and technical events
+
+Projects
+
+ML-Based Dental Cavity Assessment System|Python, scikit-learn, Random Forest, SVM2026
+
+•Built a multi-class ML classifier to predict dental treatment category (No Treatment, Filling, Root Canal, Extraction) from
+
+clinical features using Random Forest and SVM
+
+•Random Forest achieved 100% accuracy; SVM achieved 97% with macro F1-score of 0.92 on 300-sample test set
+
+•Engineered features including severity index and combined sensitivity; applied IQR-based outlier removal and StandardScaler
+
+preprocessing
+
+•Performed feature importance analysis – cavity depth (0.342) and pain score (0.278) identified as top predictors
+
+Network Simulation – Cisco Packet Tracer|Networking, Security2025
+
+•Designed and simulated enterprise-level network topologies with DHCP, VPN, NAT, OSPF, and RIP protocols
+
+•Implemented router and switch configurations following security best practices
+
+Smart Parking System|IoT, ESP32, Arduino 2024
+
+•Built an automated parking management system using ESP32 and IR sensors for real-time slot detection
+
+Clinic Management System|SQL, Database Design2025
+
+•Designed relational schema for patients, appointments, and billing; wrote complex SQL queries for reporting
+
+Linux Security Operations|Linux, Cybersecurity2025 – 2026
+
+•Performed log analysis, file permission management, and security monitoring using Linux CLI tools
+
+Languages
+
+English: ProficientHindi: NativeKannada: Native

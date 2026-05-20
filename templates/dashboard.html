@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-2">
+        <h1 class="text-6xl md:text-8xl font-headline font-black uppercase tracking-tighter text-[#f5f0e8]">Overview</h1>
+        <p class="text-xl font-body text-primary-fixed font-bold uppercase tracking-wider">Placement Cycle 2026</p>
+    </div>
+
+    <!-- Stat Cards (Bento style) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Card 1 -->
+        <div class="bg-[#000000] brutalist-border p-6 flex flex-col justify-between brutalist-shadow-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150">
+            <div class="flex justify-between items-start mb-8">
+                <h3 class="text-2xl font-headline font-bold uppercase text-[#f5f0e8]">Active<br>Applications</h3>
+                <span class="material-symbols-outlined text-4xl text-primary-fixed" style="font-variation-settings: 'FILL' 1;">work</span>
+            </div>
+            <div class="text-7xl font-headline font-black text-primary-fixed">
+                {{ "%02d"|format(stats.total_apps) }}
+            </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="bg-[#000000] brutalist-border-primary p-6 flex flex-col justify-between brutalist-shadow hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150">
+            <div class="flex justify-between items-start mb-8">
+                <h3 class="text-2xl font-headline font-bold uppercase text-[#f5f0e8]">Offers<br>Received</h3>
+                <span class="material-symbols-outlined text-4xl text-[#0055ff]" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+            </div>
+            <div class="text-7xl font-headline font-black text-[#0055ff]">
+                {{ "%02d"|format(offers_count) }}
+            </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="bg-[#000000] brutalist-border p-6 flex flex-col justify-between brutalist-shadow-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150">
+            <div class="flex justify-between items-start mb-8">
+                <h3 class="text-2xl font-headline font-bold uppercase text-[#f5f0e8]">Upcoming<br>Alerts (48h)</h3>
+                <span class="material-symbols-outlined text-4xl text-[#e63b2e]" style="font-variation-settings: 'FILL' 1;">alarm</span>
+            </div>
+            <div class="text-7xl font-headline font-black text-[#e63b2e]">
+                {{ "%02d"|format(active_alerts|length) }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout: Table + Deadlines -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-12 items-start">
+        <!-- Tracker Table -->
+        <div class="xl:col-span-2 flex flex-col gap-6">
+            <div class="flex justify-between items-end border-b-4 border-[#f5f0e8] pb-4">
+                <h2 class="text-4xl font-headline font-black uppercase text-[#f5f0e8] tracking-tight">Tracker</h2>
+                <a href="{{ url_for('applications_list') }}" class="text-primary-fixed font-body font-bold uppercase hover:underline decoration-4 underline-offset-4 flex items-center gap-1">
+                    Manage Tracker <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
+            </div>
+            <div class="flex flex-col gap-4">
+                {% if not applications %}
+                <div class="bg-[#1a1a1a] brutalist-border p-8 text-center">
+                    <p class="font-headline font-bold text-xl uppercase text-[#d0cbc3] mb-4">No applications registered yet!</p>
+                    <a href="{{ url_for('applications_list') }}" class="inline-block bg-primary-fixed text-primary px-6 py-3 border-2 border-primary font-headline font-black uppercase brutalist-shadow hover:bg-[#ffffff] hover:text-[#000000] transition-colors">
+                        Add Your First Job Application
+                    </a>
+                </div>
+                {% else %}
+                    {% for app in applications %}
+                        {% if app.status == 'Rejected' %}
+                        <!-- Rejected Card -->
+                        <div class="bg-[#1a1a1a] brutalist-border p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-[#2a2a2a] transition-colors opacity-70 grayscale">
+                            <div class="flex-1">
+                                <h4 class="text-2xl font-headline font-bold text-[#f5f0e8] uppercase">{{ app.company_name }}</h4>
+                                <p class="text-sm font-body text-[#d0cbc3] uppercase font-bold tracking-wider">{{ app.role_title }}</p>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="text-2xl font-headline font-black text-gray-500">{{ app.jd_match_score|int }}% Match</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="inline-block bg-[#e8e3da] text-[#1a1a1a] px-3 py-1 font-headline font-bold uppercase text-sm border-2 border-[#1a1a1a]">{{ app.latest_round }}</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-right">
+                                <span class="inline-block bg-[#e63b2e] text-[#ffffff] px-3 py-1 font-headline font-bold uppercase text-sm">Rejected</span>
+                            </div>
+                        </div>
+                        {% elif app.status == 'Offer' %}
+                        <!-- Offer Card -->
+                        <div class="bg-[#1a1a1a] brutalist-border-primary p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 brutalist-shadow">
+                            <div class="flex-1">
+                                <h4 class="text-2xl font-headline font-bold text-[#f5f0e8] uppercase">{{ app.company_name }}</h4>
+                                <p class="text-sm font-body text-[#d0cbc3] uppercase font-bold tracking-wider">{{ app.role_title }}</p>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="text-2xl font-headline font-black text-[#0055ff]">{{ app.jd_match_score|int }}% Match</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="inline-block bg-[#0055ff] text-[#ffffff] px-3 py-1 font-headline font-bold uppercase text-sm border-2 border-[#f5f0e8]">{{ app.latest_round }}</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-right">
+                                <span class="inline-block bg-primary-fixed text-[#1a1a1a] px-3 py-1 font-headline font-black uppercase text-sm border-2 border-[#f5f0e8]">OFFER</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Active Card (Applied / In Progress) -->
+                        <div class="bg-[#1a1a1a] brutalist-border p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-[#2a2a2a] transition-colors">
+                            <div class="flex-1">
+                                <h4 class="text-2xl font-headline font-bold text-[#f5f0e8] uppercase">{{ app.company_name }}</h4>
+                                <p class="text-sm font-body text-[#d0cbc3] uppercase font-bold tracking-wider">{{ app.role_title }}</p>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="text-2xl font-headline font-black text-primary-fixed">{% if app.jd_match_score > 0 %}{{ app.jd_match_score|int }}% Match{% else %}--{% endif %}</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-center">
+                                <span class="inline-block bg-[#0055ff] text-[#ffffff] px-3 py-1 font-headline font-bold uppercase text-sm border-2 border-[#f5f0e8]">{{ app.latest_round }}</span>
+                            </div>
+                            <div class="flex-1 text-left sm:text-right">
+                                <span class="inline-block bg-[#f5f0e8] text-[#1a1a1a] px-3 py-1 font-headline font-bold uppercase text-sm">
+                                    {% if app.status == 'In Progress' %}In Progress{% else %}Applied{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Deadlines Widget -->
+        <div class="flex flex-col gap-6">
+            <div class="border-b-4 border-[#e63b2e] pb-4">
+                <h2 class="text-4xl font-headline font-black uppercase text-[#e63b2e] tracking-tight">Timeline</h2>
+            </div>
+            
+            {% if not upcoming_items %}
+            <div class="bg-[#1a1a1a] brutalist-border p-6 text-center text-[#ffffff]">
+                <p class="font-headline font-bold uppercase">No upcoming deadlines or scheduled interviews!</p>
+            </div>
+            {% else %}
+            <div class="bg-[#e63b2e] p-6 brutalist-border brutalist-shadow-white text-[#ffffff] flex flex-col gap-6">
+                {% for item in upcoming_items %}
+                <div class="border-b-2 border-[#ffffff] pb-4 last:border-b-0 last:pb-0 flex justify-between items-start">
+                    <div>
+                        <h5 class="font-headline font-bold text-xl uppercase mb-1">{{ item.title }}</h5>
+                        <p class="font-body text-sm font-bold uppercase tracking-wider">{{ item.subtitle }}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-headline font-black text-2xl block uppercase">
+                            {% if "2026-05-22" in item.date_str %}
+                                Tomorrow
+                            {% else %}
+                                {{ item.date_str[:10] }}
+                            {% endif %}
+                        </span>
+                        <span class="font-body text-xs uppercase font-bold">{{ item.date_str[11:16] if item.date_str|length > 10 else 'ALL DAY' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <a href="{{ url_for('deadlines_timeline') }}" class="block text-center w-full bg-[#000000] text-[#f5f0e8] font-headline font-bold text-lg uppercase py-3 border-2 border-[#ffffff] hover:bg-[#ffffff] hover:text-[#000000] transition-colors mt-4">
+                    VIEW COMPLETE TIMELINE
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

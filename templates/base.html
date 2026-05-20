@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Placement Portal - {% block title %}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#e6b800",
+                    "tertiary": "#0055ff",
+                    "surface-bright": "#faf7f2",
+                    "inverse-on-surface": "#f5f0e8",
+                    "surface-container": "#eee9e0",
+                    "secondary-fixed": "#ffdad6",
+                    "surface": "#f5f0e8",
+                    "tertiary-container": "#d6e3ff",
+                    "on-surface": "#1a1a1a",
+                    "on-primary-container": "#1a1a1a",
+                    "on-background": "#1a1a1a",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#d6e3ff",
+                    "surface-tint": "#1a1a1a",
+                    "on-secondary-container": "#1a1a1a",
+                    "on-primary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-container": "#ffcc00",
+                    "outline-variant": "#d0cbc3",
+                    "secondary": "#e63b2e",
+                    "primary": "#1a1a1a",
+                    "surface-container-low": "#f2ede5",
+                    "secondary-fixed-dim": "#ffb3ab",
+                    "on-primary-fixed-variant": "#1a1a1a",
+                    "error-container": "#ffdad6",
+                    "error": "#cc0000",
+                    "surface-variant": "#e8e3da",
+                    "secondary-container": "#ffdad6",
+                    "on-tertiary-fixed": "#1a1a1a",
+                    "on-secondary-fixed": "#1a1a1a",
+                    "surface-container-high": "#e8e3da",
+                    "on-error-container": "#93000a",
+                    "surface-dim": "#d6d1c9",
+                    "outline": "#1a1a1a",
+                    "inverse-surface": "#1a1a1a",
+                    "tertiary-fixed-dim": "#a8c6ff",
+                    "on-tertiary-fixed-variant": "#1a1a1a",
+                    "background": "#f5f0e8",
+                    "on-secondary": "#1a1a1a",
+                    "primary-fixed": "#ffcc00",
+                    "on-secondary-fixed-variant": "#1a1a1a",
+                    "on-tertiary-container": "#1a1a1a",
+                    "on-surface-variant": "#4a4a4a",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#1a1a1a",
+                    "surface-container-highest": "#e2ddd4",
+                    "inverse-primary": "#f5f0e8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Space Grotesk"
+                    ],
+                    "display": [
+                            "Space Grotesk"
+                    ],
+                    "body": [
+                            "Inter"
+                    ],
+                    "label": [
+                            "Space Grotesk"
+                    ]
+            },
+            "fontSize": {}
+        },
+        },
+      }
+    </script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #f5f0e8;
+        }
+        .brutalist-border {
+            border: 4px solid #f5f0e8;
+        }
+        .brutalist-border-primary {
+            border: 4px solid #ffcc00;
+        }
+        .brutalist-shadow {
+            box-shadow: 6px 6px 0px 0px #ffcc00;
+        }
+        .brutalist-shadow-white {
+            box-shadow: 6px 6px 0px 0px #f5f0e8;
+        }
+        .brutalist-shadow-blue {
+            box-shadow: 6px 6px 0px 0px #0055ff;
+        }
+        .brutalist-shadow-red {
+            box-shadow: 6px 6px 0px 0px #e63b2e;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ffcc00;
+            border: 2px solid #1a1a1a;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="font-body min-h-screen flex selection:bg-primary-container selection:text-primary">
+    <!-- SideNavBar -->
+    <nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 py-8 bg-surface dark:bg-primary border-r-4 border-primary z-50 overflow-y-auto custom-scrollbar">
+        <div class="px-6 mb-8">
+            <h2 class="text-primary font-black uppercase text-2xl font-headline tracking-tighter">ADIT'S</h2>
+            <p class="text-sm font-body uppercase font-bold text-primary mt-1 opacity-80">PLACEMENT PORTAL</p>
+        </div>
+        <div class="flex-1 px-4 flex flex-col gap-2">
+            <!-- Navigation Links -->
+            <a class="{% if request.path == '/' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('dashboard') }}">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                Overview
+            </a>
+            <a class="{% if request.path == '/applications' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('applications_list') }}">
+                <span class="material-symbols-outlined">assignment</span>
+                Applications
+            </a>
+            <a class="{% if request.path == '/deadlines' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('deadlines_timeline') }}">
+                <span class="material-symbols-outlined">event</span>
+                Deadlines
+            </a>
+            <a class="{% if request.path == '/analyzer' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('analyzer') }}">
+                <span class="material-symbols-outlined">psychology</span>
+                Gemini Analyzer
+            </a>
+            <a class="{% if request.path == '/resume' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('resume') }}">
+                <span class="material-symbols-outlined">description</span>
+                Resume Builder
+            </a>
+            <a class="{% if request.path == '/fast-register' %}bg-primary-fixed text-primary border-2 border-primary shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]{% else %}text-primary hover:translate-x-1 hover:border-2 hover:border-primary hover:bg-surface-variant{% endif %} m-2 flex items-center gap-3 p-3 transition-all duration-75 ease-in-out font-headline font-bold text-xl uppercase" href="{{ url_for('fast_register') }}">
+                <span class="material-symbols-outlined">flash_on</span>
+                Fast Register
+            </a>
+        </div>
+        <div class="px-6 mb-8 mt-auto">
+            <a href="{{ url_for('applications_list') }}" class="block w-full text-center bg-primary text-primary-fixed font-headline font-bold text-xl uppercase py-4 border-2 border-primary brutalist-shadow hover:bg-primary-fixed hover:text-primary transition-colors duration-150">
+                MANAGE APPS
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 md:ml-64 flex flex-col min-h-screen bg-[#000000]">
+        <!-- TopAppBar -->
+        <header class="w-full top-0 sticky bg-[#000000] border-b-4 border-[#f5f0e8] z-40 flex justify-between items-center px-6 py-4">
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('dashboard') }}" class="text-2xl font-headline font-black uppercase bg-primary-fixed text-primary px-2 border-2 border-primary">PLACEMENT.PORTAL</a>
+            </div>
+            <div class="flex items-center gap-6">
+                <!-- Session status -->
+                {% if active_alerts %}
+                <a href="{{ url_for('deadlines_timeline') }}" class="text-[#e63b2e] hover:scale-110 transition-transform relative flex items-center">
+                    <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+                    <span class="absolute -top-1 -right-1 bg-primary-fixed text-primary text-xs font-headline font-black px-1.5 py-0.5 border border-[#1a1a1a] rounded-none">{{ active_alerts|length }}</span>
+                </a>
+                {% else %}
+                <button class="text-[#f5f0e8] hover:text-primary-fixed transition-colors">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+                </button>
+                {% endif %}
+                
+                <div class="w-12 h-12 brutalist-border rounded-none overflow-hidden brutalist-shadow-white bg-primary-fixed">
+                    <img alt="Student Profile Picture" class="w-full h-full object-cover grayscale mix-blend-multiply" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgNt0y9IMvMoNl4CreuSa25aIAaDANHq-Bm2sIYdFF6SMCWV1-VRu32K9KpJ7hg1yAbXnvKszNxaRp4rvlbsOroqh29HeMOjI3na15ASX0ytaV1r0J5PXKXhmCYFF6SK3IGY2aM0_eOm0CdHOWXa5dazdpvOwUpN3v3sp7VS-iIuNwMAKIM17S_Rh6TBgffwd8Rwlzgr1JxZ1vZyjB-kDfkAeKiPCWpznh0sR7KYiq2v7RQYC8ZZPUWxxEm_cP8zYPgbRkvwQLPRQ">
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Deadline Alert Banner -->
+        {% if active_alerts %}
+        <div class="bg-[#e63b2e] border-b-4 border-[#f5f0e8] text-[#ffffff] px-6 py-3 font-headline font-bold uppercase text-center flex flex-col sm:flex-row items-center justify-center gap-3 z-30">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-yellow-300 animate-pulse text-2xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+                <span class="tracking-tight text-sm md:text-base">ALERT: {{ active_alerts|length }} deadine(s)/interview(s) due within next 48 hours!</span>
+            </div>
+            <a href="{{ url_for('deadlines_timeline') }}" class="bg-[#000000] text-[#f5f0e8] border-2 border-[#ffffff] px-3 py-1 font-headline font-bold text-xs uppercase hover:bg-[#ffffff] hover:text-[#000000] transition-colors">
+                View Warning Dashboard
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="p-6 pb-0 max-w-7xl mx-auto w-full">
+              {% for category, message in messages %}
+                <div class="p-4 border-2 border-primary {% if category == 'success' %}bg-primary-fixed text-primary brutalist-shadow{% else %}bg-[#e63b2e] text-white brutalist-shadow-white{% endif %} font-headline font-bold uppercase text-lg mb-4 flex items-center justify-between">
+                    <span>{{ message }}</span>
+                    <button onclick="this.parentElement.remove()" class="text-sm font-black border border-current px-2 py-0.5 hover:bg-white hover:text-black">X</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <main class="flex-1">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

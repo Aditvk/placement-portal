@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Database (will be auto-generated on deploy)
+placement.db
+
+# Compiled resume files (generated at runtime)
+resume_pdf.pdf
+resume_latex.tex
+test_resume.pdf
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Stitch source (design reference, not needed in production)
+stitch/

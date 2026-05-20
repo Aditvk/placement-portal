@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}AI Fast Register{% endblock %}
+
+{% block head %}
+<style>
+    /* Styling for files */
+    .brutalist-input-file::-webkit-file-upload-button {
+        background: #000;
+        color: #fff;
+        border: 2px solid #fff;
+        padding: 0.5rem 1rem;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .brutalist-input-file::-webkit-file-upload-button:hover {
+        background: #ffcc00;
+        color: #000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-2 border-b-4 border-[#e63b2e] pb-6">
+        <h1 class="text-5xl md:text-7xl font-headline font-black uppercase tracking-tighter text-[#e63b2e]">Fast Register</h1>
+        <p class="text-lg font-body text-[#f5f0e8] font-bold uppercase tracking-wider mt-1">AI Email & Screenshot Auto-Registration Portal</p>
+    </div>
+
+    <!-- Main Dual Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        
+        <!-- Left Pane: Upload & Input -->
+        <div class="flex flex-col gap-8 bg-[#1a1a1a] brutalist-border p-6 brutalist-shadow-white">
+            <div class="border-b border-[#e63b2e] pb-3 flex justify-between items-center">
+                <h2 class="text-3xl font-headline font-black uppercase text-[#e63b2e]">1. Email Source</h2>
+                <span class="text-xs font-body uppercase text-gray-400 font-bold">Input screenshot or text</span>
+            </div>
+
+            <form action="{{ url_for('fast_register_parse') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-6">
+                <!-- Option A: File Upload -->
+                <div class="flex flex-col gap-3 bg-black p-4 brutalist-border">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[#e63b2e]">image</span>
+                        <h4 class="font-headline font-bold text-sm uppercase text-white">Option A: Email Screenshot</h4>
+                    </div>
+                    <p class="text-xs font-body text-gray-400 uppercase">Upload an image of the recruiter email (.png, .jpg, .jpeg)</p>
+                    <input type="file" name="email_screenshot" accept=".png,.jpg,.jpeg" class="brutalist-input-file block w-full text-sm text-gray-400 cursor-pointer">
+                </div>
+
+                <!-- Option B: Paste Text -->
+                <div class="flex flex-col gap-3 bg-black p-4 brutalist-border">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[#e63b2e]">text_snippet</span>
+                        <h4 class="font-headline font-bold text-sm uppercase text-white">Option B: Copy-Paste Email Text</h4>
+                    </div>
+                    <textarea name="email_text" rows="10" placeholder="PASTE RECRUITER EMAIL HEADER & BODY CONTENT HERE..." class="w-full bg-black text-white border-2 border-white px-4 py-3 font-body text-sm focus:ring-0 focus:outline-none focus:border-[#e63b2e] custom-scrollbar">{{ email_text }}</textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-[#e63b2e] text-white font-headline font-black text-xl uppercase py-4 border-2 border-white brutalist-shadow-red hover:bg-white hover:text-black transition-colors duration-150 flex items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                    AUTO-DETECT & PARSE EMAIL
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Pane: Review & Confirm -->
+        <div class="flex flex-col gap-8 bg-[#1a1a1a] brutalist-border p-6 brutalist-shadow-blue">
+            <div class="border-b border-[#0055ff] pb-3 flex justify-between items-center">
+                <h2 class="text-3xl font-headline font-black uppercase text-[#0055ff]">2. Verification Review</h2>
+                <span class="text-xs font-body uppercase text-gray-400 font-bold">Inspect extracted details</span>
+            </div>
+
+            {% if not parsed_data %}
+            <div class="bg-black p-12 text-center border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-4">
+                <span class="material-symbols-outlined text-6xl text-gray-500">barcode_reader</span>
+                <p class="font-headline font-bold uppercase text-[#d0cbc3]">Awaiting AI parsing...</p>
+                <p class="font-body text-xs text-gray-400 uppercase">Submit an email screenshot or paste text on the left to pre-populate registration fields.</p>
+            </div>
+            {% else %}
+            
+            <!-- Match Status Banner -->
+            {% if matching_app %}
+            <div class="bg-[#0055ff] brutalist-border p-4 text-white brutalist-shadow-white flex items-start gap-3">
+                <span class="material-symbols-outlined text-3xl shrink-0" style="font-variation-settings: 'FILL' 1;">sync</span>
+                <div>
+                    <h4 class="font-headline font-bold uppercase text-md leading-tight">EXISTING APPLICATION MATCH DETECTED!</h4>
+                    <p class="font-body text-xs uppercase mt-1">Updates existing tracker record for <strong>{{ matching_app.company_name }} - {{ matching_app.role_title }}</strong>.</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-[#ffcc00] brutalist-border p-4 text-[#1a1a1a] brutalist-shadow-white flex items-start gap-3">
+                <span class="material-symbols-outlined text-3xl shrink-0" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+                <div>
+                    <h4 class="font-headline font-bold uppercase text-md leading-tight">NEW PLACEMENT DETECTED!</h4>
+                    <p class="font-body text-xs uppercase mt-1">This will register a new company profile and application entry in the database.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Review confirmation form -->
+            <form action="{{ url_for('fast_register_confirm') }}" method="POST" class="flex flex-col gap-6">
+                <!-- Keep track of matching app id -->
+                <input type="hidden" name="matching_app_id" value="{{ matching_app.id if matching_app else '' }}">
+
+                <!-- Primary Job Details -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Company Name *</label>
+                        <input type="text" name="company_name" required value="{{ parsed_data.company_name }}" class="bg-black text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Role / Position Title *</label>
+                        <input type="text" name="role_title" required value="{{ parsed_data.role_title }}" class="bg-black text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Application Status *</label>
+                        <select name="status" class="bg-black text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                            <option value="Applied" {% if parsed_data.status == 'Applied' %}selected{% endif %}>Applied</option>
+                            <option value="OA" {% if parsed_data.status == 'OA' %}selected{% endif %}>Online Assessment (OA)</option>
+                            <option value="Interview" {% if parsed_data.status == 'Interview' %}selected{% endif %}>Interviewing</option>
+                            <option value="Offer" {% if parsed_data.status == 'Offer' %}selected{% endif %}>Offer Received</option>
+                            <option value="Rejected" {% if parsed_data.status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Deadline / Scheduled Date</label>
+                        <input type="text" name="deadline_date" value="{{ parsed_data.deadline_date or '' }}" placeholder="YYYY-MM-DD HH:MM:SS" class="bg-black text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Application / Portal Link</label>
+                    <input type="text" name="application_link" value="{{ parsed_data.application_link or '' }}" placeholder="http://..." class="bg-black text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                </div>
+
+                <!-- Interview round checklist toggle -->
+                <div class="border-t-2 border-dashed border-gray-700 pt-6 flex flex-col gap-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="is_interview_update" name="is_interview_update" {% if parsed_data.is_interview_update %}checked{% endif %} class="bg-black text-[#0055ff] border-2 border-white focus:ring-0">
+                        <label for="is_interview_update" class="text-xs font-headline font-bold uppercase text-[#f5f0e8] cursor-pointer">This email contains interview/round schedule</label>
+                    </div>
+
+                    <!-- Interview Fields -->
+                    <div id="interview_fields" class="{% if not parsed_data.is_interview_update %}hidden{% endif %} flex flex-col gap-4 bg-black p-4 brutalist-border">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Round Number</label>
+                                <input type="number" name="round_number" value="{{ parsed_data.interview_round.round_number or 1 }}" class="bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Round Type</label>
+                                <select name="round_type" class="bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                                    <option value="Online Assessment" {% if parsed_data.interview_round.round_type == 'Online Assessment' %}selected{% endif %}>Online Assessment</option>
+                                    <option value="Technical Interview" {% if parsed_data.interview_round.round_type == 'Technical Interview' or parsed_data.interview_round.round_type == 'Technical' %}selected{% endif %}>Technical Interview</option>
+                                    <option value="Behavioral Interview" {% if parsed_data.interview_round.round_type == 'Behavioral Interview' or parsed_data.interview_round.round_type == 'Behavioral' %}selected{% endif %}>Behavioral Interview</option>
+                                    <option value="System Design" {% if parsed_data.interview_round.round_type == 'System Design' %}selected{% endif %}>System Design</option>
+                                    <option value="HR Round" {% if parsed_data.interview_round.round_type == 'HR Round' or parsed_data.interview_round.round_type == 'HR' %}selected{% endif %}>HR Round</option>
+                                    <option value="Managerial" {% if parsed_data.interview_round.round_type == 'Managerial' %}selected{% endif %}>Managerial</option>
+                                    <option value="Other" {% if parsed_data.interview_round.round_type == 'Other' %}selected{% endif %}>Other / General</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Interview Schedule Time</label>
+                            <input type="text" name="scheduled_time" value="{{ parsed_data.interview_round.scheduled_time or '' }}" placeholder="YYYY-MM-DD HH:MM:SS" class="bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none focus:border-[#0055ff]">
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">Recruiter Interview Notes</label>
+                            <textarea name="notes" rows="3" placeholder="RECRUITER NOTES, LOGISTICS, OR PREP DETAILS..." class="w-full bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:ring-0 focus:outline-none focus:border-[#0055ff] custom-scrollbar">{{ parsed_data.interview_round.notes or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recruiter original summary -->
+                <div class="flex flex-col gap-1">
+                    <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">AI Extracted Email Summary</label>
+                    <div class="bg-black text-gray-300 border border-gray-700 px-3 py-2 font-body text-xs">
+                        {{ parsed_data.email_summary }}
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-[#0055ff] text-white font-headline font-black text-xl uppercase py-4 border-2 border-white brutalist-shadow-blue hover:bg-white hover:text-black transition-colors duration-150 flex items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-2xl">save</span>
+                    CONFIRM & REGISTER PLACEMENT
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Show/hide interview fields dynamically based on checkbox status
+    const isInterviewCheckbox = document.getElementById('is_interview_update');
+    const interviewFields = document.getElementById('interview_fields');
+    
+    if (isInterviewCheckbox) {
+        isInterviewCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                interviewFields.classList.remove('hidden');
+            } else {
+                interviewFields.classList.add('hidden');
+            }
+        });
+    }
+</script>
+{% endblock %}

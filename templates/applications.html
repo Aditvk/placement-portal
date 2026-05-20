@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Applications{% endblock %}
+
+{% block head %}
+<script>
+    function openAddModal() {
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+    
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+    }
+
+    function openEditModal(id, company, role, status, deadline, link) {
+        const modal = document.getElementById('editModal');
+        const form = document.getElementById('editForm');
+        form.action = '/applications/edit/' + id;
+        document.getElementById('edit_company_name').value = company;
+        document.getElementById('edit_role_title').value = role;
+        document.getElementById('edit_status').value = status;
+        
+        // Handle ISO8601 formatting for input datetime-local
+        if (deadline) {
+            // Converts "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DDTHH:MM"
+            const formatted = deadline.replace(' ', 'T').substring(0, 16);
+            document.getElementById('edit_deadline_date').value = formatted;
+        } else {
+            document.getElementById('edit_deadline_date').value = '';
+        }
+        
+        document.getElementById('edit_application_link').value = link || '';
+        modal.classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+    
+    function toggleRounds(appId) {
+        const section = document.getElementById('rounds-' + appId);
+        if (section.classList.contains('hidden')) {
+            section.classList.remove('hidden');
+        } else {
+            section.classList.add('hidden');
+        }
+    }
+
+    function filterApplications() {
+        const searchVal = document.getElementById('searchBar').value.toUpperCase();
+        const statusVal = document.getElementById('statusFilter').value.toUpperCase();
+        const cards = document.getElementsByClassName('application-card');
+        
+        for (let i = 0; i < cards.length; i++) {
+            const company = cards[i].getAttribute('data-company').toUpperCase();
+            const role = cards[i].getAttribute('data-role').toUpperCase();
+            const status = cards[i].getAttribute('data-status').toUpperCase();
+            
+            const matchesSearch = company.includes(searchVal) || role.includes(searchVal);
+            const matchesStatus = statusVal === 'ALL' || status === statusVal;
+            
+            if (matchesSearch && matchesStatus) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 border-b-4 border-[#f5f0e8] pb-6">
+        <div>
+            <h1 class="text-5xl md:text-7xl font-headline font-black uppercase tracking-tighter text-[#f5f0e8]">Applications</h1>
+            <p class="text-lg font-body text-primary-fixed font-bold uppercase tracking-wider mt-1">Full CRUD Management Control Panel</p>
+        </div>
+        <button onclick="openAddModal()" class="bg-primary-fixed text-primary font-headline font-black text-xl uppercase px-6 py-4 border-2 border-primary brutalist-shadow hover:bg-[#ffffff] hover:text-[#000000] transition-colors duration-150">
+            ADD NEW APPLICATION
+        </button>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-[#1a1a1a] brutalist-border p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="w-full md:w-1/2 flex items-center border-b-2 border-[#f5f0e8] pb-1">
+            <span class="material-symbols-outlined text-[#f5f0e8] mr-2">search</span>
+            <input id="searchBar" onkeyup="filterApplications()" class="bg-transparent border-none focus:ring-0 text-[#f5f0e8] font-body placeholder-[#f5f0e8] placeholder-opacity-50 w-full uppercase text-sm font-bold focus:outline-none" placeholder="SEARCH BY COMPANY OR ROLE..." type="text">
+        </div>
+        <div class="w-full md:w-1/4">
+            <select id="statusFilter" onchange="filterApplications()" class="w-full bg-[#000000] text-[#f5f0e8] font-headline font-bold uppercase border-2 border-[#f5f0e8] px-3 py-2 focus:ring-0 focus:outline-none">
+                <option value="ALL">ALL STATUSES</option>
+                <option value="APPLIED">APPLIED</option>
+                <option value="IN PROGRESS">IN PROGRESS</option>
+                <option value="OFFER">OFFERS</option>
+                <option value="REJECTED">REJECTED</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Application Cards Grid -->
+    <div class="flex flex-col gap-6">
+        {% if not applications %}
+        <div class="bg-[#1a1a1a] brutalist-border p-12 text-center">
+            <p class="font-headline font-bold text-2xl uppercase text-[#d0cbc3] mb-4">No applications found.</p>
+            <button onclick="openAddModal()" class="bg-primary-fixed text-primary px-8 py-4 border-2 border-primary font-headline font-black uppercase brutalist-shadow hover:bg-[#ffffff] transition-all">
+                Create First Application
+            </button>
+        </div>
+        {% else %}
+            {% for app in applications %}
+            <div class="application-card bg-[#1a1a1a] brutalist-border p-6 flex flex-col gap-6 transition-all {% if app.status == 'Offer' %}border-primary-fixed{% endif %}"
+                 data-company="{{ app.company_name }}" 
+                 data-role="{{ app.role_title }}" 
+                 data-status="{{ app.status }}">
+                
+                <!-- Main details row -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-3xl font-headline font-black text-[#f5f0e8] uppercase">{{ app.company_name }}</h3>
+                            
+                            <!-- Application Link -->
+                            {% if app.application_link %}
+                            <a href="{{ app.application_link }}" target="_blank" class="text-[#0055ff] hover:text-[#ffcc00] transition-colors" title="Visit Application Portal">
+                                <span class="material-symbols-outlined text-2xl">open_in_new</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm font-body text-[#d0cbc3] uppercase font-bold tracking-wider mt-1">{{ app.role_title }} - {{ app.company_location }}</p>
+                    </div>
+
+                    <!-- Match Score Badge -->
+                    <div class="flex items-center gap-4">
+                        {% if app.jd_match_score > 0 %}
+                        <div class="bg-[#0055ff] text-[#ffffff] px-4 py-2 border-2 border-[#ffffff] font-headline font-black text-lg">
+                            GEMINI SCORE: {{ app.jd_match_score|int }}%
+                        </div>
+                        {% else %}
+                        <a href="{{ url_for('analyzer') }}" class="bg-[#1a1a1a] hover:bg-[#ffcc00] hover:text-black text-primary-fixed px-3 py-2 border-2 border-primary-fixed font-headline font-bold text-sm uppercase transition-colors">
+                            ⚡ AI ANALYZE
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Status tag -->
+                        <span class="inline-block px-4 py-2 font-headline font-black uppercase border-2 text-md 
+                            {% if app.status == 'Applied' %}bg-gray-600 text-white border-white
+                            {% elif app.status == 'In Progress' %}bg-[#0055ff] text-white border-white
+                            {% elif app.status == 'Offer' %}bg-primary-fixed text-[#1a1a1a] border-primary-fixed brutalist-shadow
+                            {% else %}bg-[#e63b2e] text-white border-white opacity-70{% endif %}">
+                            {{ app.status }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Footer row with deadline & controls -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t-2 border-gray-700 pt-4 gap-4">
+                    <div class="flex items-center gap-2 text-sm text-[#d0cbc3] font-body uppercase font-bold">
+                        <span class="material-symbols-outlined text-[#e63b2e]">event</span>
+                        <span>Deadline: <span class="text-white">{{ app.deadline_date if app.deadline_date else 'NO DEADLINE SET' }}</span></span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-4">
+                        <button onclick="toggleRounds({{ app.id }})" class="bg-transparent text-[#f5f0e8] border-2 border-[#f5f0e8] px-4 py-2 font-headline font-bold text-sm uppercase hover:bg-[#f5f0e8] hover:text-[#1a1a1a] transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">group</span> 
+                            Rounds ({{ app.rounds|length }})
+                        </button>
+                        
+                        <button onclick="openEditModal({{ app.id }}, '{{ app.company_name }}', '{{ app.role_title }}', '{{ app.status }}', '{{ app.deadline_date }}', '{{ app.application_link }}')" class="bg-primary-fixed text-[#1a1a1a] border-2 border-[#1a1a1a] px-4 py-2 font-headline font-bold text-sm uppercase hover:bg-white hover:text-black transition-all">
+                            EDIT
+                        </button>
+
+                        <form action="{{ url_for('delete_application', app_id=app.id) }}" method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete this application? This deletes all associated interview rounds!');">
+                            <button type="submit" class="bg-[#e63b2e] text-white border-2 border-white px-4 py-2 font-headline font-bold text-sm uppercase hover:bg-[#000000] hover:text-[#e63b2e] transition-all">
+                                DELETE
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Expanded Interview Rounds management -->
+                <div id="rounds-{{ app.id }}" class="hidden bg-[#000000] brutalist-border p-6 mt-2 flex flex-col gap-6">
+                    <div class="border-b-2 border-primary-fixed pb-2 flex justify-between items-center">
+                        <h4 class="text-xl font-headline font-black text-primary-fixed uppercase">INTERVIEW FUNNEL ROUNDS</h4>
+                        <span class="text-xs font-body font-bold text-gray-400">TRACK EVERY STEP OF YOUR RECRUITMENT</span>
+                    </div>
+
+                    <!-- Interview rounds list -->
+                    {% if not app.rounds %}
+                    <p class="text-sm font-body uppercase text-gray-500 font-bold">No interview rounds scheduled yet.</p>
+                    {% else %}
+                    <div class="flex flex-col gap-4">
+                        {% for round in app.rounds %}
+                        <div class="bg-[#1a1a1a] border-l-4 border-[#0055ff] p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h5 class="font-headline font-black text-[#f5f0e8] text-lg uppercase">Round {{ round.round_number }}: {{ round.round_type }}</h5>
+                                <p class="text-xs font-body text-[#d0cbc3] uppercase font-bold mt-1">Scheduled: {{ round.scheduled_time if round.scheduled_time else 'PENDING DATE' }}</p>
+                                {% if round.notes %}
+                                <p class="text-sm font-body text-[#ffffff] mt-2 italic bg-[#000] p-2 border border-gray-800">Note: {{ round.notes }}</p>
+                                {% endif %}
+                            </div>
+                            <form action="{{ url_for('delete_interview_round', app_id=app.id, round_id=round.id) }}" method="POST" onsubmit="return confirm('Remove this interview round?');">
+                                <button type="submit" class="text-[#e63b2e] hover:text-white transition-colors">
+                                    <span class="material-symbols-outlined text-2xl">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Add interview round inline form -->
+                    <form action="{{ url_for('add_interview_round', app_id=app.id) }}" method="POST" class="border-t border-gray-800 pt-4 flex flex-col gap-4">
+                        <h5 class="font-headline font-bold text-[#f5f0e8] uppercase text-sm">Add Interview Stage</h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-headline font-bold text-[#f5f0e8] uppercase mb-1">Round Number</label>
+                                <input type="number" name="round_number" value="{{ (app.rounds|length) + 1 }}" required class="w-full bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-headline font-bold text-[#f5f0e8] uppercase mb-1">Round Type</label>
+                                <select name="round_type" required class="w-full bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-headline font-bold uppercase text-sm focus:outline-none">
+                                    <option value="Online Assessment">Online Assessment (OA)</option>
+                                    <option value="Technical Round">Technical Round</option>
+                                    <option value="System Design">System Design</option>
+                                    <option value="Behavioral">Behavioral</option>
+                                    <option value="HR Round">HR Round</option>
+                                    <option value="Final Round">Final Round</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-headline font-bold text-[#f5f0e8] uppercase mb-1">Scheduled Time</label>
+                                <input type="datetime-local" name="scheduled_time" class="w-full bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-headline font-bold text-[#f5f0e8] uppercase mb-1">Notes / Instructions</label>
+                            <textarea name="notes" placeholder="E.G. COVERING ADVANCED REACT HOOKS, DOCKER DEPLOYMENTS..." rows="2" class="w-full bg-[#1a1a1a] text-white border-2 border-white px-3 py-2 font-body text-sm focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="bg-[#0055ff] text-white font-headline font-black uppercase text-sm py-2 border-2 border-white hover:bg-white hover:text-black transition-all self-end px-6">
+                            ADD ROUND
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- ================= ADD APPLICATION MODAL ================= -->
+<div id="addModal" class="hidden fixed inset-0 bg-[#000000] bg-opacity-80 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#000000] brutalist-border p-6 max-w-xl w-full brutalist-shadow-white relative">
+        <button onclick="closeAddModal()" class="absolute top-4 right-4 text-[#f5f0e8] hover:text-[#e63b2e] font-black text-2xl">X</button>
+        
+        <h3 class="text-3xl font-headline font-black text-primary-fixed uppercase border-b-4 border-primary pb-2 mb-6">ADD JOB APPLICATION</h3>
+        
+        <form action="{{ url_for('add_application') }}" method="POST" class="flex flex-col gap-4">
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Company Name</label>
+                <input type="text" name="company_name" required placeholder="E.G. GOOGLE, STRIPE..." class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-primary-fixed px-3 py-2 focus:ring-0 uppercase font-headline font-bold">
+            </div>
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Role Title</label>
+                <input type="text" name="role_title" required placeholder="E.G. FRONTEND ENGINEER..." class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-primary-fixed px-3 py-2 focus:ring-0 uppercase font-body font-bold">
+            </div>
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Application Link</label>
+                <input type="url" name="application_link" placeholder="HTTP://..." class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-primary-fixed px-3 py-2 focus:ring-0 font-body">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Status</label>
+                    <select name="status" class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] px-3 py-2 focus:ring-0 font-headline font-black uppercase text-sm">
+                        <option value="Applied">Applied</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Deadline Date</label>
+                    <input type="datetime-local" name="deadline_date" class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] px-3 py-2 focus:ring-0 font-body text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button type="button" onclick="closeAddModal()" class="bg-transparent text-white border-2 border-white px-6 py-3 font-headline font-bold uppercase hover:bg-white hover:text-black transition-all">
+                    CANCEL
+                </button>
+                <button type="submit" class="bg-primary-fixed text-primary border-2 border-primary px-6 py-3 font-headline font-black uppercase brutalist-shadow hover:bg-[#ffffff] hover:text-[#000000] transition-colors">
+                    SAVE APPLICATION
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= EDIT APPLICATION MODAL ================= -->
+<div id="editModal" class="hidden fixed inset-0 bg-[#000000] bg-opacity-80 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#000000] brutalist-border p-6 max-w-xl w-full brutalist-shadow-white relative">
+        <button onclick="closeEditModal()" class="absolute top-4 right-4 text-[#f5f0e8] hover:text-[#e63b2e] font-black text-2xl">X</button>
+        
+        <h3 class="text-3xl font-headline font-black text-[#0055ff] uppercase border-b-4 border-[#0055ff] pb-2 mb-6">EDIT APPLICATION</h3>
+        
+        <form id="editForm" action="" method="POST" class="flex flex-col gap-4">
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Company Name</label>
+                <input type="text" id="edit_company_name" name="company_name" required class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-[#0055ff] px-3 py-2 focus:ring-0 uppercase font-headline font-bold">
+            </div>
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Role Title</label>
+                <input type="text" id="edit_role_title" name="role_title" required class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-[#0055ff] px-3 py-2 focus:ring-0 uppercase font-body font-bold">
+            </div>
+            <div>
+                <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Application Link</label>
+                <input type="url" id="edit_application_link" name="application_link" class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-[#0055ff] px-3 py-2 focus:ring-0 font-body">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Status</label>
+                    <select id="edit_status" name="status" class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] px-3 py-2 focus:ring-0 font-headline font-black uppercase text-sm">
+                        <option value="Applied">Applied</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-headline font-bold text-[#f5f0e8] uppercase mb-1">Deadline Date</label>
+                    <input type="datetime-local" id="edit_deadline_date" name="deadline_date" class="w-full bg-[#1a1a1a] text-[#ffffff] border-b-4 border-x-0 border-t-0 border-[#f5f0e8] px-3 py-2 focus:ring-0 font-body text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button type="button" onclick="closeEditModal()" class="bg-transparent text-white border-2 border-white px-6 py-3 font-headline font-bold uppercase hover:bg-white hover:text-black transition-all">
+                    CANCEL
+                </button>
+                <button type="submit" class="bg-[#0055ff] text-white border-2 border-white px-6 py-3 font-headline font-black uppercase brutalist-shadow-blue hover:bg-[#ffffff] hover:text-[#000000] transition-colors">
+                    UPDATE APPLICATION
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

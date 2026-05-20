@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Builder & PDF Compiler{% endblock %}
+
+{% block head %}
+<style>
+    /* Styling for the custom code block */
+    pre code {
+        display: block;
+        padding: 1rem;
+        background: #000000;
+        color: #ffcc00;
+        border: 2px solid #f5f0e8;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.85rem;
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-2 border-b-4 border-[#ffcc00] pb-6">
+        <h1 class="text-5xl md:text-7xl font-headline font-black uppercase tracking-tighter text-[#ffcc00]">Resume Builder</h1>
+        <p class="text-lg font-body text-[#f5f0e8] font-bold uppercase tracking-wider mt-1">Convert Plain Text to Professional LaTeX & PDF</p>
+    </div>
+
+    <!-- Main Dual Panel layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        
+        <!-- Left Pane: Plain Text Editor & File Import -->
+        <div class="flex flex-col gap-8 bg-[#1a1a1a] brutalist-border p-6 brutalist-shadow-white">
+            <div class="border-b border-[#ffcc00] pb-3 flex justify-between items-center">
+                <h2 class="text-3xl font-headline font-black uppercase text-[#ffcc00]">1. Resume Source</h2>
+                <span class="text-xs font-body uppercase text-gray-400 font-bold">Import or Edit Plain Text</span>
+            </div>
+
+            <!-- Import Resume Section -->
+            <form action="{{ url_for('import_resume') }}" method="POST" enctype="multipart/form-data" class="bg-black p-4 brutalist-border flex flex-col gap-4">
+                <h4 class="font-headline font-bold text-sm uppercase text-white">Import Existing Resume (PDF / TXT)</h4>
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <input type="file" name="resume_file" accept=".pdf,.txt" required class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:border-2 file:border-white file:bg-black file:text-white file:font-headline file:font-bold file:uppercase hover:file:bg-white hover:file:text-black cursor-pointer">
+                    <button type="submit" class="w-full sm:w-auto bg-[#ffffff] text-[#000000] border-2 border-[#000000] px-4 py-2 font-headline font-bold text-xs uppercase hover:bg-primary-fixed hover:text-black transition-colors shrink-0">
+                        PARSE FILE
+                    </button>
+                </div>
+            </form>
+
+            <!-- Editor Form -->
+            <form action="{{ url_for('compile_resume') }}" method="POST" class="flex flex-col gap-6">
+                <div class="flex flex-col gap-2">
+                    <label class="font-headline font-bold uppercase text-sm text-[#f5f0e8]">Edit Resume text:</label>
+                    <textarea name="resume_text" required rows="18" placeholder="PASTE OR WRITE YOUR RESUME DETAILS HERE... E.G.
+
+ADIT KUMAR
+Email: adit@example.com | Phone: +91 98765 43210
+Location: Bangalore, India
+
+SUMMARY
+Highly motivated and results-oriented Software Engineering student...
+
+EXPERIENCE
+Tech Corp | Software Engineer Intern | 2025 - Present
+- Designed scalable backend REST APIs using Flask...
+
+SKILLS
+Languages: Python, SQL, JavaScript..." class="w-full bg-black text-white border-2 border-white px-4 py-3 font-body text-sm focus:ring-0 focus:outline-none focus:border-[#ffcc00] custom-scrollbar">{{ resume_text }}</textarea>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="save_as_matcher" name="save_as_matcher" checked class="bg-black text-[#ffcc00] border-2 border-white focus:ring-0">
+                    <label for="save_as_matcher" class="text-xs font-headline font-bold uppercase text-[#d0cbc3] cursor-pointer">Update Default Resume Cache (Used in AI Matcher)</label>
+                </div>
+
+                <button type="submit" class="w-full bg-[#ffcc00] text-primary font-headline font-black text-xl uppercase py-4 border-2 border-white brutalist-shadow hover:bg-white hover:text-black transition-colors duration-150 flex items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-2xl">construction</span>
+                    COMPILE TO LATEX & PDF
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Pane: Compiled Output -->
+        <div class="flex flex-col gap-8 bg-[#1a1a1a] brutalist-border p-6 brutalist-shadow-blue">
+            <div class="border-b border-[#0055ff] pb-3 flex justify-between items-center">
+                <h2 class="text-3xl font-headline font-black uppercase text-[#0055ff]">2. Compiled Output</h2>
+                <span class="text-xs font-body uppercase text-gray-400 font-bold">Standard PDF & LaTeX code</span>
+            </div>
+
+            {% if not compiled %}
+            <div class="bg-black p-12 text-center border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-4">
+                <span class="material-symbols-outlined text-6xl text-gray-500">pending_actions</span>
+                <p class="font-headline font-bold uppercase text-[#d0cbc3]">No resume compiled yet!</p>
+                <p class="font-body text-xs text-gray-400 uppercase">Write or parse your resume on the left and click Compile.</p>
+            </div>
+            {% else %}
+            <!-- Action Download buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- PDF Download -->
+                <a href="{{ url_for('download_pdf') }}" target="_blank" class="block text-center bg-[#0055ff] text-[#ffffff] font-headline font-black text-lg uppercase py-4 border-2 border-white brutalist-shadow-blue hover:bg-white hover:text-black transition-colors duration-150 flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">download</span>
+                    DOWNLOAD PDF RESUME
+                </a>
+                <!-- LaTeX Download -->
+                <a href="{{ url_for('download_tex') }}" class="block text-center bg-[#ffffff] text-[#000000] font-headline font-black text-lg uppercase py-4 border-2 border-black brutalist-shadow-white hover:bg-[#ffcc00] hover:text-black transition-colors duration-150 flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">code</span>
+                    DOWNLOAD LATEX (.TEX)
+                </a>
+            </div>
+
+            <!-- LaTeX Code Viewer -->
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-headline font-bold uppercase text-xs text-[#d0cbc3]">LaTeX Source Code:</label>
+                    <button onclick="copyLaTeX()" class="text-xs font-headline font-bold uppercase bg-black text-[#ffcc00] border border-white px-2 py-0.5 hover:bg-[#ffcc00] hover:text-black transition-colors">
+                        COPY CODE
+                    </button>
+                </div>
+                <pre class="w-full custom-scrollbar"><code id="latex-code">{{ latex_code }}</code></pre>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+function copyLaTeX() {
+    var codeText = document.getElementById("latex-code").innerText;
+    navigator.clipboard.writeText(codeText).then(function() {
+        alert("LaTeX code successfully copied to clipboard!");
+    }, function(err) {
+        console.error("Could not copy text: ", err);
+    });
+}
+</script>
+{% endblock %}

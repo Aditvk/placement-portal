@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Gemini Job Analyzer{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-2 border-b-4 border-[#0055ff] pb-6">
+        <h1 class="text-5xl md:text-7xl font-headline font-black uppercase tracking-tighter text-[#0055ff]">Gemini AI Matcher</h1>
+        <p class="text-lg font-body text-[#f5f0e8] font-bold uppercase tracking-wider mt-1">Deep Resume vs Job Description Compatibility scan</p>
+    </div>
+
+    <!-- API Key Warning/Setup (If not configured in environment) -->
+    {% if not api_configured %}
+    <div class="bg-[#e63b2e] brutalist-border p-6 text-white brutalist-shadow-white flex flex-col gap-4">
+        <div class="flex items-center gap-2 border-b border-white pb-2">
+            <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">vpn_key</span>
+            <h3 class="text-2xl font-headline font-black uppercase">Gemini API Key Required</h3>
+        </div>
+        <p class="font-body text-sm uppercase font-bold">To execute AI scanning, you must supply a Gemini API Key. You can set it as `GEMINI_API_KEY` in your environment variables, or enter it below to cache it securely in your session.</p>
+    </div>
+    {% endif %}
+
+    <!-- Input Form -->
+    <form action="{{ url_for('analyzer') }}" method="POST" class="flex flex-col gap-8">
+        <!-- Optional Session Key input -->
+        {% if not api_configured or session.get('GEMINI_API_KEY') %}
+        <div class="bg-[#1a1a1a] brutalist-border p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary-fixed">key</span>
+                <span class="font-headline font-bold text-sm uppercase text-[#f5f0e8]">Session Key Config:</span>
+            </div>
+            <div class="flex-1 w-full max-w-lg flex gap-2">
+                <input type="password" name="api_key" value="{{ session.get('GEMINI_API_KEY', '') }}" placeholder="ENTER GEMINI API KEY..." class="flex-1 bg-black text-white border-2 border-white px-3 py-1 font-body text-xs uppercase focus:outline-none focus:border-primary-fixed">
+                {% if session.get('GEMINI_API_KEY') %}
+                <button type="submit" formaction="{{ url_for('clear_api_key') }}" class="bg-[#e63b2e] text-white border-2 border-white px-3 py-1 font-headline font-bold text-xs uppercase hover:bg-white hover:text-black">CLEAR</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dropdown to link score with active applications -->
+        <div class="bg-[#1a1a1a] brutalist-border p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#0055ff]">link</span>
+                <span class="font-headline font-bold text-sm uppercase text-[#f5f0e8]">Associate analysis with existing Tracker Application (Optional):</span>
+            </div>
+            <div>
+                <select name="application_id" class="bg-[#000000] text-[#f5f0e8] font-headline font-bold uppercase border-2 border-[#f5f0e8] px-3 py-2 text-sm focus:outline-none">
+                    <option value="">-- DO NOT ASSOCIATE --</option>
+                    {% if applications %}
+                        {% for app in applications %}
+                        <option value="{{ app.id }}" {% if linked_app_id|int == app.id|int %}selected{% endif %}>
+                            {{ app.company_name }} - {{ app.role_title }} ({% if app.jd_match_score > 0 %}{{ app.jd_match_score|int }}%{% else %}UNSCANNED{% endif %})
+                        </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Split Dual-Panel Textareas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Resume Input panel -->
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center border-b-2 border-[#f5f0e8] pb-2">
+                    <h3 class="text-2xl font-headline font-black text-[#f5f0e8] uppercase">1. Paste Resume</h3>
+                    <span class="text-xs font-body uppercase text-gray-400 font-bold">YOUR SKILLS & ACCOMPLISHMENTS</span>
+                </div>
+                <textarea name="resume" required rows="12" placeholder="PASTE FULL RESUME TEXT HERE... (E.G. TECHNICAL SKILLS: PYTHON, FLASK, SQLITE... WORK EXPERIENCE...)" class="w-full bg-[#1a1a1a] text-white border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-[#0055ff] px-4 py-3 font-body text-sm focus:ring-0 focus:outline-none">{{ resume }}</textarea>
+                
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="save_resume" name="save_resume" checked class="bg-black text-[#0055ff] border-2 border-white focus:ring-0">
+                    <label for="save_resume" class="text-xs font-headline font-bold uppercase text-[#d0cbc3] cursor-pointer">SAVE AS DEFAULT RESUME CACHE</label>
+                </div>
+            </div>
+
+            <!-- Job Description input panel -->
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center border-b-2 border-[#f5f0e8] pb-2">
+                    <h3 class="text-2xl font-headline font-black text-[#f5f0e8] uppercase">2. Paste Job Description</h3>
+                    <span class="text-xs font-body uppercase text-gray-400 font-bold">ROLE SPECIFICATIONS & REQUIREMENTS</span>
+                </div>
+                <textarea name="job_description" required rows="12" placeholder="PASTE JOB DETAILS, REQUIRED COMPETENCIES, AND KEY SKILLS HERE FROM THE POSTING..." class="w-full bg-[#1a1a1a] text-white border-b-4 border-x-0 border-t-0 border-[#f5f0e8] focus:border-[#0055ff] px-4 py-3 font-body text-sm focus:ring-0 focus:outline-none">{{ job_description }}</textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-[#0055ff] text-[#ffffff] font-headline font-black text-2xl uppercase py-6 border-2 border-white brutalist-shadow-blue hover:bg-white hover:text-black transition-colors duration-150 mt-4 flex items-center justify-center gap-3">
+            <span class="material-symbols-outlined text-3xl">psychology</span>
+            RUN COMPATIBILITY ANALYSIS
+        </button>
+    </form>
+
+    <!-- Results Section -->
+    {% if result %}
+    <div id="results" class="mt-8 flex flex-col gap-12 border-t-4 border-dashed border-gray-700 pt-12">
+        <div class="flex flex-col gap-2">
+            <h2 class="text-4xl md:text-5xl font-headline font-black uppercase text-primary-fixed tracking-tight">Scanner Output</h2>
+            <p class="text-sm font-body uppercase font-bold text-gray-400">GenAI comparative audit recommendations</p>
+        </div>
+
+        <!-- Score Dial Card -->
+        <div class="bg-[#1a1a1a] brutalist-border p-8 flex flex-col md:flex-row items-center gap-8 brutalist-shadow-white">
+            <div class="w-full md:w-1/3 flex flex-col items-center justify-center p-6 bg-black brutalist-border">
+                <span class="font-headline font-black text-xs uppercase text-gray-400 mb-2">COMPATIBILITY LEVEL</span>
+                <span class="font-headline font-black text-7xl text-primary-fixed">{{ result.match_score }}%</span>
+                <span class="font-headline font-bold text-sm uppercase text-[#f5f0e8] mt-2">
+                    {% if result.match_score >= 85 %}EXCELLENT FIT
+                    {% elif result.match_score >= 70 %}STRONG FIT
+                    {% elif result.match_score >= 50 %}MODERATE MATCH
+                    {% else %}LOW ALIGNMENT{% endif %}
+                </span>
+            </div>
+            
+            <div class="flex-1 w-full">
+                <h3 class="text-2xl font-headline font-black uppercase text-[#f5f0e8] mb-4">FITNESS PROGRESS METER</h3>
+                
+                <!-- Brutalist Bar -->
+                <div class="w-full bg-[#000000] brutalist-border h-12 overflow-hidden mb-6 relative">
+                    <div class="h-full bg-primary-fixed border-r-4 border-[#ffffff] transition-all duration-500" style="width: {{ result.match_score }}%;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center font-headline font-black uppercase text-sm mix-blend-difference text-white">
+                        MATCH SCORE RATIO: {{ result.match_score }}%
+                    </div>
+                </div>
+                
+                <p class="font-body text-sm text-[#d0cbc3] uppercase font-bold">This score estimates the candidate's alignment with core tech stack requirements and keywords extracted from the JD. Aim for 80%+ before submitting.</p>
+            </div>
+        </div>
+
+        <!-- Matching vs Missing keywords bento -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Matching Keywords -->
+            <div class="bg-[#1a1a1a] brutalist-border p-6 flex flex-col gap-4">
+                <div class="border-b border-[#0055ff] pb-2 flex justify-between items-center">
+                    <h4 class="text-xl font-headline font-black text-[#0055ff] uppercase">MATCHING SKILLS & KEYWORDS</h4>
+                    <span class="material-symbols-outlined text-[#0055ff]">check_circle</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    {% if not result.matching_keywords %}
+                    <p class="text-sm font-body text-gray-500 italic uppercase">No matching keywords found. Update your experience!</p>
+                    {% else %}
+                        {% for kw in result.matching_keywords %}
+                        <span class="bg-[#0055ff] text-white px-3 py-1 font-headline font-bold uppercase text-sm border-2 border-white">
+                            {{ kw }}
+                        </span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Missing Keywords -->
+            <div class="bg-[#1a1a1a] brutalist-border p-6 flex flex-col gap-4">
+                <div class="border-b border-[#e63b2e] pb-2 flex justify-between items-center">
+                    <h4 class="text-xl font-headline font-black text-[#e63b2e] uppercase">CRITICAL MISSING KEYWORDS</h4>
+                    <span class="material-symbols-outlined text-[#e63b2e]">cancel</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    {% if not result.missing_keywords %}
+                    <p class="text-sm font-body text-green-500 uppercase font-bold">None! Perfect keyword matching achieved.</p>
+                    {% else %}
+                        {% for kw in result.missing_keywords %}
+                        <span class="bg-[#e63b2e] text-white px-3 py-1 font-headline font-bold uppercase text-sm border-2 border-white">
+                            {{ kw }}
+                        </span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Block -->
+        <div class="bg-[#1a1a1a] brutalist-border p-6 flex flex-col gap-6">
+            <div class="border-b-4 border-primary pb-2 flex justify-between items-center">
+                <h4 class="text-2xl font-headline font-black text-[#f5f0e8] uppercase">ACTIONABLE RESUME REVISIONS</h4>
+                <span class="material-symbols-outlined text-primary-fixed text-3xl">lightbulb</span>
+            </div>
+            
+            <div class="flex flex-col gap-4">
+                {% if not result.recommendations %}
+                <p class="font-body text-sm text-gray-500 italic uppercase">No immediate revisions needed. Good luck!</p>
+                {% else %}
+                    {% for rec in result.recommendations %}
+                    <div class="bg-[#000000] border-l-4 border-primary-fixed p-4 flex gap-3 items-start">
+                        <span class="font-headline font-black text-xl text-primary-fixed">0{{ loop.index }}.</span>
+                        <div class="flex-1">
+                            <p class="font-body text-sm text-[#ffffff] font-bold leading-relaxed uppercase">{{ rec }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
