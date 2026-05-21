@@ -105,14 +105,19 @@ def init_db(force=False):
     if IS_POSTGRES:
         conn = get_db_connection()
         try:
-            # Check if database schema already exists
+            # Check if applications table exists safely using information_schema
             cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM applications LIMIT 1;")
-            db_exists = True
-        except Exception:
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                    AND table_name = 'applications'
+                );
+            """)
+            db_exists = cursor.fetchone()[0]
+        except Exception as e:
+            print(f"Error checking database tables: {e}")
             db_exists = False
-            # Rollback transaction since the query failed and invalidated it
-            conn.conn.rollback()
         finally:
             conn.close()
     else:

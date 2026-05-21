@@ -11,16 +11,23 @@ from colorama import Fore, Style
 import pypdf
 from pdf_generator import generate_resume_pdf
 
-import db
-
 # Initialize colorama
 colorama.init(autoreset=True)
 
-# Load environment variables
+# Load environment variables FIRST before importing db
 load_dotenv()
+
+import db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "neo-brutalist-secret-key-1928")
+
+# Register context processor to make db_type available in templates
+@app.context_processor
+def inject_db_type():
+    return {
+        'db_type': 'PostgreSQL (Cloud)' if db.IS_POSTGRES else 'SQLite (Local)'
+    }
 
 # Ensure database is initialized
 db.init_db()
