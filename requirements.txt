@@ -5,3 +5,4 @@ colorama==0.4.6
 fpdf2==2.7.9
 pypdf==4.2.0
 gunicorn==22.0.0
+psycopg2-binary==2.9.9

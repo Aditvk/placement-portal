@@ -2,20 +2,125 @@ import os
 import sqlite3
 from datetime import datetime
 
+# Check if we are running in Postgres production
+DATABASE_URL = os.environ.get('DATABASE_URL')
+IS_POSTGRES = DATABASE_URL is not None
+
+if IS_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+    # Ensure DATABASE_URL is formatted correctly for psycopg2
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 DATABASE_FILE = 'placement.db'
 
+class DBCursor:
+    def __init__(self, cursor, is_postgres=False):
+        self.cursor = cursor
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=()):
+        if self.is_postgres:
+            # Translate SQLite placeholders (?) to PostgreSQL (%s)
+            query = query.replace('?', '%s')
+            # Translate SQLite INSERT OR IGNORE to PostgreSQL standard
+            query = query.replace('INSERT OR IGNORE', 'INSERT')
+        self.cursor.execute(query, params)
+        return self
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+    @property
+    def lastrowid(self):
+        if self.is_postgres:
+            try:
+                # In PostgreSQL, get the last generated value of sequence in current session
+                self.cursor.execute("SELECT lastval();")
+                val = self.cursor.fetchone()[0]
+                return val
+            except Exception:
+                return None
+        else:
+            return self.cursor.lastrowid
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        row = self.cursor.fetchone()
+        if row is None:
+            raise StopIteration
+        return row
+
+class DBConnection:
+    def __init__(self, conn, is_postgres=False):
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=()):
+        cursor = self.cursor()
+        cursor.execute(query, params)
+        return cursor
+
+    def executescript(self, script_content):
+        cursor = self.cursor()
+        if self.is_postgres:
+            # Translate Schema/Seed scripts from SQLite to PG
+            script_content = script_content.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+            script_content = script_content.replace("REAL DEFAULT 0.0", "DOUBLE PRECISION DEFAULT 0.0")
+            script_content = script_content.replace("INSERT OR IGNORE", "INSERT")
+            cursor.execute(script_content)
+        else:
+            self.conn.executescript(script_content)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+    def cursor(self):
+        if self.is_postgres:
+            return DBCursor(self.conn.cursor(), is_postgres=True)
+        else:
+            return DBCursor(self.conn.cursor(), is_postgres=False)
+
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    # Enable foreign keys
-    conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+    if IS_POSTGRES:
+        raw_conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor)
+        return DBConnection(raw_conn, is_postgres=True)
+    else:
+        raw_conn = sqlite3.connect(DATABASE_FILE)
+        raw_conn.row_factory = sqlite3.Row
+        raw_conn.execute("PRAGMA foreign_keys = ON;")
+        return DBConnection(raw_conn, is_postgres=False)
 
 def init_db(force=False):
-    db_exists = os.path.exists(DATABASE_FILE)
+    db_exists = False
+    if IS_POSTGRES:
+        conn = get_db_connection()
+        try:
+            # Check if database schema already exists
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM applications LIMIT 1;")
+            db_exists = True
+        except Exception:
+            db_exists = False
+            # Rollback transaction since the query failed and invalidated it
+            conn.conn.rollback()
+        finally:
+            conn.close()
+    else:
+        db_exists = os.path.exists(DATABASE_FILE)
+        
     if db_exists and not force:
         return
-    
+        
     print("Initializing database...")
     conn = get_db_connection()
     
@@ -69,7 +174,6 @@ def get_all_companies():
 # Application Helpers
 def get_all_applications():
     conn = get_db_connection()
-    # Join with companies to get company name and details
     query = """
         SELECT a.*, c.name as company_name, c.location as company_location, c.industry_focus 
         FROM applications a
@@ -177,7 +281,6 @@ def delete_interview_round(round_id):
     conn.close()
 
 def get_latest_round_badge(app_id):
-    # Find the latest round by round_number for this application
     conn = get_db_connection()
     row = conn.execute(
         "SELECT round_type FROM interview_rounds WHERE application_id = ? ORDER BY round_number DESC LIMIT 1",
@@ -190,20 +293,14 @@ def get_latest_round_badge(app_id):
 def get_dashboard_stats():
     conn = get_db_connection()
     
-    # 1. Total active applications (all applications, or we can filter out rejected/completed if we want, but total applications is standard)
     total_apps = conn.execute("SELECT COUNT(*) FROM applications").fetchone()[0]
     
-    # 2. Active interviews (scheduled in the future or count of unique applications with upcoming interview rounds)
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     active_interviews = conn.execute(
         "SELECT COUNT(DISTINCT application_id) FROM interview_rounds WHERE scheduled_time >= ?",
         (now_str,)
     ).fetchone()[0]
     
-    # 3. Upcoming deadlines within 48 hours
-    # In SQLite, we can check applications with deadlines between now and 48 hours from now
-    # Since sqlite datetime comparison works lexicographically on ISO8601 strings:
-    # We can compute the 48h limit in Python and pass it as a parameter!
     conn.close()
     return {
         'total_apps': total_apps,

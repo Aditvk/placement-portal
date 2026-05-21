@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import threading
 import time
 import json
@@ -35,8 +34,7 @@ def run_deadline_checker():
     while True:
         try:
             alerts = []
-            conn = sqlite3.connect(db.DATABASE_FILE)
-            conn.row_factory = sqlite3.Row
+            conn = db.get_db_connection()
             cursor = conn.cursor()
             
             # Fetch active applications (excluding Rejected and Offers completed)
