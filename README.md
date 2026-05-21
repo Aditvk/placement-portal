@@ -2,11 +2,12 @@
 
 # 🎯 Adit's Placement Portal
 
-**An AI-powered, full-stack placement tracking system built with Flask, SQLite, and Google Gemini API.**
+**An AI-powered, full-stack placement tracking system built with Flask, SQLite, PostgreSQL, and Google Gemini API.**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Gemini](https://img.shields.io/badge/Gemini_AI-2.5_Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-CDN-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -56,7 +57,7 @@ An independent daemon thread scans the database every 60 seconds. When deadlines
 | Layer | Technology |
 |-------|-----------|
 | **Backend** | Python 3.11 · Flask 3.0 |
-| **Database** | SQLite 3 (with cascading foreign keys) |
+| **Database** | Hybrid SQLite 3 (offline dev) & PostgreSQL (Neon Cloud DB in production) |
 | **AI Engine** | Google Gemini 2.5 Flash (text + multimodal vision) |
 | **PDF Generation** | FPDF2 (Harvard-standard resume layout) |
 | **PDF Parsing** | pypdf (resume file import & text extraction) |
@@ -167,6 +168,7 @@ Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes | Google Gemini API key ([get one here](https://aistudio.google.com/apikey)) |
+| `DATABASE_URL` | No | PostgreSQL connection string (forces app to run in persistent Cloud Database mode) |
 | `FLASK_SECRET_KEY` | No | Session encryption key (auto-generated if missing) |
 
 ---
