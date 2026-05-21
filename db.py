@@ -1,19 +1,40 @@
 import os
 import sqlite3
 from datetime import datetime
+from urllib.parse import urlparse
 
 # Check if we are running in Postgres production
 DATABASE_URL = os.environ.get('DATABASE_URL')
 IS_POSTGRES = DATABASE_URL is not None
 
 if IS_POSTGRES:
-    import psycopg2
-    import psycopg2.extras
-    # Ensure DATABASE_URL is formatted correctly for psycopg2
+    import pg8000
+    import pg8000.dbapi
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 DATABASE_FILE = 'placement.db'
+
+class DBRow:
+    """A driver-agnostic row wrapper that supports access both by column index and column name."""
+    def __init__(self, colnames, values):
+        self.colnames = colnames
+        self.values = list(values)
+        self.row_dict = {col: val for col, val in zip(colnames, values)}
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.values[key]
+        return self.row_dict[key]
+
+    def __len__(self):
+        return len(self.values)
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def keys(self):
+        return self.colnames
 
 class DBCursor:
     def __init__(self, cursor, is_postgres=False):
@@ -30,10 +51,20 @@ class DBCursor:
         return self
 
     def fetchone(self):
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+        if row is None:
+            return None
+        if self.is_postgres:
+            colnames = [desc[0] for desc in self.cursor.description]
+            return DBRow(colnames, row)
+        return row
 
     def fetchall(self):
-        return self.cursor.fetchall()
+        rows = self.cursor.fetchall()
+        if self.is_postgres:
+            colnames = [desc[0] for desc in self.cursor.description]
+            return [DBRow(colnames, r) for r in rows]
+        return rows
 
     @property
     def lastrowid(self):
@@ -52,7 +83,7 @@ class DBCursor:
         return self
 
     def __next__(self):
-        row = self.cursor.fetchone()
+        row = self.fetchone()
         if row is None:
             raise StopIteration
         return row
@@ -92,7 +123,21 @@ class DBConnection:
 
 def get_db_connection():
     if IS_POSTGRES:
-        raw_conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor)
+        # Parse connection string for pg8000
+        parsed = urlparse(DATABASE_URL)
+        username = parsed.username
+        password = parsed.password
+        database = parsed.path[1:]
+        hostname = parsed.hostname
+        port = parsed.port or 5432
+        
+        raw_conn = pg8000.dbapi.connect(
+            user=username,
+            password=password,
+            host=hostname,
+            port=port,
+            database=database
+        )
         return DBConnection(raw_conn, is_postgres=True)
     else:
         raw_conn = sqlite3.connect(DATABASE_FILE)
