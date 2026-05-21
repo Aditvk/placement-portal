@@ -104,6 +104,8 @@ class DBConnection:
             # Translate Schema/Seed scripts from SQLite to PG
             script_content = script_content.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
             script_content = script_content.replace("REAL DEFAULT 0.0", "DOUBLE PRECISION DEFAULT 0.0")
+            script_content = script_content.replace("DATETIME", "TIMESTAMP")
+            script_content = script_content.replace("datetime", "TIMESTAMP")
             script_content = script_content.replace("INSERT OR IGNORE", "INSERT")
             cursor.execute(script_content)
         else:
