@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date
 from urllib.parse import urlparse
 
 # Check if we are running in Postgres production
@@ -19,8 +19,18 @@ class DBRow:
     """A driver-agnostic row wrapper that supports access both by column index and column name."""
     def __init__(self, colnames, values):
         self.colnames = colnames
-        self.values = list(values)
-        self.row_dict = {col: val for col, val in zip(colnames, values)}
+        # Normalize datetime/date objects returned by database drivers (like pg8000)
+        # to their standard string representations to guarantee SQLite-compatible behavior.
+        normalized_values = []
+        for val in values:
+            if isinstance(val, datetime):
+                normalized_values.append(val.strftime('%Y-%m-%d %H:%M:%S'))
+            elif isinstance(val, date):
+                normalized_values.append(val.strftime('%Y-%m-%d'))
+            else:
+                normalized_values.append(val)
+        self.values = normalized_values
+        self.row_dict = {col: val for col, val in zip(colnames, normalized_values)}
 
     def __getitem__(self, key):
         if isinstance(key, int):

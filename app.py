@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -31,6 +31,25 @@ def inject_db_type():
 
 # Ensure database is initialized
 db.init_db()
+
+def parse_db_datetime(val):
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, date):
+        return datetime(val.year, val.month, val.day)
+    if not val:
+        return None
+    if not isinstance(val, str):
+        try:
+            val = str(val)
+        except Exception:
+            return None
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%dT%H:%M'):
+        try:
+            return datetime.strptime(val, fmt)
+        except ValueError:
+            pass
+    return None
 
 # Global list for background alerts
 ACTIVE_ALERTS = []
@@ -71,16 +90,9 @@ def run_deadline_checker():
             for app_row in apps:
                 deadline_str = app_row['deadline_date']
                 if deadline_str:
-                    try:
-                        deadline = datetime.strptime(deadline_str, '%Y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        try:
-                            deadline = datetime.strptime(deadline_str, '%Y-%m-%d')
-                        except ValueError:
-                            try:
-                                deadline = datetime.strptime(deadline_str, '%Y-%m-%dT%H:%M')
-                            except ValueError:
-                                continue
+                    deadline = parse_db_datetime(deadline_str)
+                    if not deadline:
+                        continue
                             
                     if now <= deadline <= limit_48h:
                         diff = deadline - now
@@ -101,16 +113,9 @@ def run_deadline_checker():
             for rnd_row in rounds:
                 sched_str = rnd_row['scheduled_time']
                 if sched_str:
-                    try:
-                        sched_time = datetime.strptime(sched_str, '%Y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        try:
-                            sched_time = datetime.strptime(sched_str, '%Y-%m-%d')
-                        except ValueError:
-                            try:
-                                sched_time = datetime.strptime(sched_str, '%Y-%m-%dT%H:%M')
-                            except ValueError:
-                                continue
+                    sched_time = parse_db_datetime(sched_str)
+                    if not sched_time:
+                        continue
                             
                     if now <= sched_time <= limit_48h:
                         diff = sched_time - now
@@ -205,13 +210,8 @@ def dashboard():
         
     # Sort items chronologically
     def parse_time(item):
-        date_str = item['date_str']
-        for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%dT%H:%M'):
-            try:
-                return datetime.strptime(date_str, fmt)
-            except ValueError:
-                pass
-        return datetime.max
+        dt = parse_db_datetime(item['date_str'])
+        return dt if dt else datetime.max
         
     upcoming_items = [i for i in upcoming_items if parse_time(i) >= datetime.now()]
     upcoming_items.sort(key=parse_time)
@@ -328,16 +328,12 @@ def deadlines_timeline():
             is_upcoming = False
             hours_left = 9999
             
-            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%dT%H:%M'):
-                try:
-                    dt = datetime.strptime(date_str, fmt)
-                    if dt >= datetime.now():
-                        is_upcoming = True
-                        diff = dt - datetime.now()
-                        hours_left = diff.total_seconds() / 3600.0
-                    break
-                except ValueError:
-                    pass
+            dt = parse_db_datetime(date_str)
+            if dt:
+                if dt >= datetime.now():
+                    is_upcoming = True
+                    diff = dt - datetime.now()
+                    hours_left = diff.total_seconds() / 3600.0
             
             deadline_items.append({
                 'app_id': app_row['id'],
