@@ -157,7 +157,81 @@ def get_db_connection():
         raw_conn.execute("PRAGMA foreign_keys = ON;")
         return DBConnection(raw_conn, is_postgres=False)
 
+def sync_postgres_sequences(conn=None):
+    if not IS_POSTGRES:
+        return
+        
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
+        
+    try:
+        cursor = conn.cursor()
+        print("Synchronizing PostgreSQL sequences...")
+        
+        # Reset companies sequence
+        cursor.execute("SELECT setval('companies_id_seq', COALESCE((SELECT MAX(id)+1 FROM companies), 1), false);")
+        # Reset applications sequence
+        cursor.execute("SELECT setval('applications_id_seq', COALESCE((SELECT MAX(id)+1 FROM applications), 1), false);")
+        # Reset interview_rounds sequence
+        cursor.execute("SELECT setval('interview_rounds_id_seq', COALESCE((SELECT MAX(id)+1 FROM interview_rounds), 1), false);")
+        
+        conn.commit()
+        print("PostgreSQL sequences synchronized successfully!")
+    except Exception as e:
+        print(f"Failed to synchronize PostgreSQL sequences: {e}")
+    finally:
+        if close_at_end:
+            conn.close()
+
+def get_setting(key, default_value=''):
+    try:
+        conn = get_db_connection()
+        row = conn.execute("SELECT value FROM portal_settings WHERE key = ?", (key,)).fetchone()
+        conn.close()
+        if row:
+            return row['value']
+    except Exception:
+        pass
+    return default_value
+
+def set_setting(key, value):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if cursor.is_postgres:
+            cursor.execute(
+                "INSERT INTO portal_settings (key, value) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                (key, str(value))
+            )
+        else:
+            cursor.execute(
+                "INSERT OR REPLACE INTO portal_settings (key, value) VALUES (?, ?)",
+                (key, str(value))
+            )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Failed to set setting {key}={value}: {e}")
+        return False
+
 def init_db(force=False):
+    # Always ensure the portal_settings table exists
+    conn_settings = get_db_connection()
+    try:
+        cursor_settings = conn_settings.cursor()
+        if cursor_settings.is_postgres:
+            cursor_settings.execute("CREATE TABLE IF NOT EXISTS portal_settings (key VARCHAR(255) PRIMARY KEY, value TEXT)")
+        else:
+            cursor_settings.execute("CREATE TABLE IF NOT EXISTS portal_settings (key TEXT PRIMARY KEY, value TEXT)")
+        conn_settings.commit()
+    except Exception as e:
+        print(f"Error ensuring portal_settings table exists: {e}")
+    finally:
+        conn_settings.close()
+
     db_exists = False
     if IS_POSTGRES:
         conn = get_db_connection()
@@ -181,6 +255,12 @@ def init_db(force=False):
         db_exists = os.path.exists(DATABASE_FILE)
         
     if db_exists and not force:
+        if IS_POSTGRES:
+            # Sync sequences even if db exists, to prevent out-of-sync issues on manual seeds
+            try:
+                sync_postgres_sequences()
+            except Exception as e:
+                print(f"Error syncing sequences on startup: {e}")
         return
         
     print("Initializing database...")
@@ -201,6 +281,10 @@ def init_db(force=False):
         except Exception as e:
             print(f"Error seeding database: {e}")
             
+    # Sync sequences for new db setup too
+    if IS_POSTGRES:
+        sync_postgres_sequences(conn)
+        
     conn.commit()
     conn.close()
 
@@ -217,12 +301,19 @@ def get_or_create_company(name, location=None, industry_focus=None):
     if row:
         company_id = row['id']
     else:
-        cursor.execute(
-            "INSERT INTO companies (name, location, industry_focus) VALUES (?, ?, ?)",
-            (name_clean, location or 'Remote', industry_focus or 'Technology')
-        )
+        if cursor.is_postgres:
+            cursor.execute(
+                "INSERT INTO companies (name, location, industry_focus) VALUES (%s, %s, %s) RETURNING id",
+                (name_clean, location or 'Remote', industry_focus or 'Technology')
+            )
+            company_id = cursor.fetchone()[0]
+        else:
+            cursor.execute(
+                "INSERT INTO companies (name, location, industry_focus) VALUES (?, ?, ?)",
+                (name_clean, location or 'Remote', industry_focus or 'Technology')
+            )
+            company_id = cursor.lastrowid
         conn.commit()
-        company_id = cursor.lastrowid
         
     conn.close()
     return company_id
@@ -270,13 +361,21 @@ def create_application(company_name, role_title, status, deadline_date, applicat
     company_id = get_or_create_company(company_name)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """INSERT INTO applications (company_id, role_title, status, deadline_date, jd_match_score, application_link)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (company_id, role_title, status, deadline_date, jd_match_score, application_link)
-    )
+    if cursor.is_postgres:
+        cursor.execute(
+            """INSERT INTO applications (company_id, role_title, status, deadline_date, jd_match_score, application_link)
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+            (company_id, role_title, status, deadline_date, jd_match_score, application_link)
+        )
+        app_id = cursor.fetchone()[0]
+    else:
+        cursor.execute(
+            """INSERT INTO applications (company_id, role_title, status, deadline_date, jd_match_score, application_link)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (company_id, role_title, status, deadline_date, jd_match_score, application_link)
+        )
+        app_id = cursor.lastrowid
     conn.commit()
-    app_id = cursor.lastrowid
     conn.close()
     return app_id
 
@@ -348,13 +447,21 @@ def get_all_interviews(conn=None):
 def add_interview_round(application_id, round_number, round_type, scheduled_time, notes):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """INSERT INTO interview_rounds (application_id, round_number, round_type, scheduled_time, notes)
-           VALUES (?, ?, ?, ?, ?)""",
-        (application_id, round_number, round_type, scheduled_time, notes)
-    )
+    if cursor.is_postgres:
+        cursor.execute(
+            """INSERT INTO interview_rounds (application_id, round_number, round_type, scheduled_time, notes)
+               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+            (application_id, round_number, round_type, scheduled_time, notes)
+        )
+        round_id = cursor.fetchone()[0]
+    else:
+        cursor.execute(
+            """INSERT INTO interview_rounds (application_id, round_number, round_type, scheduled_time, notes)
+               VALUES (?, ?, ?, ?, ?)""",
+            (application_id, round_number, round_type, scheduled_time, notes)
+        )
+        round_id = cursor.lastrowid
     conn.commit()
-    round_id = cursor.lastrowid
     conn.close()
     return round_id
 

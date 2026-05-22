@@ -36,12 +36,24 @@ def close_db(e=None):
     if db_conn is not None:
         db_conn.close()
 
-# Register context processor to make db_type available in templates
+# Register context processor to make db_type and email setting available in templates
 @app.context_processor
 def inject_db_type():
     return {
-        'db_type': 'PostgreSQL (Cloud)' if db.IS_POSTGRES else 'SQLite (Local)'
+        'db_type': 'PostgreSQL (Cloud)' if db.IS_POSTGRES else 'SQLite (Local)',
+        'email_alerts_enabled': db.get_setting('email_alerts_enabled', 'true') == 'true'
     }
+
+@app.route('/settings/toggle-emails', methods=['POST'])
+def toggle_email_alerts():
+    current = db.get_setting('email_alerts_enabled', 'true')
+    new_val = 'false' if current == 'true' else 'true'
+    db.set_setting('email_alerts_enabled', new_val)
+    if new_val == 'true':
+        flash("Email deadline alerts are now ACTIVE!", "success")
+    else:
+        flash("Email deadline alerts are now PAUSED!", "warning")
+    return redirect(request.referrer or url_for('dashboard'))
 
 # Ensure database is initialized
 db.init_db()
@@ -192,18 +204,19 @@ def run_deadline_checker():
             ACTIVE_ALERTS = alerts
             
             # Process email alerts for new critical alerts
-            global SENT_EMAILS
-            for alert in alerts:
-                alert_id = alert['id']
-                last_sent = SENT_EMAILS.get(alert_id)
-                now_dt = datetime.now()
-                
-                # Check if it was never sent, or sent more than 12 hours ago
-                if last_sent is None or (now_dt - last_sent) > timedelta(hours=12):
-                    urgency_indicator = "CRITICAL" if alert['urgency'] == 'high' else "UPCOMING"
-                    subject = f"🚨 PLACEMENT PORTAL: [{urgency_indicator}] Deadline Alert for {alert['company']}!"
+            if db.get_setting('email_alerts_enabled', 'true') == 'true':
+                global SENT_EMAILS
+                for alert in alerts:
+                    alert_id = alert['id']
+                    last_sent = SENT_EMAILS.get(alert_id)
+                    now_dt = datetime.now()
                     
-                    email_body = f"""🚨 PLACEMENT PORTAL: URGENT DEADLINE WARNING 🚨
+                    # Check if it was never sent, or sent more than 12 hours ago
+                    if last_sent is None or (now_dt - last_sent) > timedelta(hours=12):
+                        urgency_indicator = "CRITICAL" if alert['urgency'] == 'high' else "UPCOMING"
+                        subject = f"🚨 PLACEMENT PORTAL: [{urgency_indicator}] Deadline Alert for {alert['company']}!"
+                        
+                        email_body = f"""🚨 PLACEMENT PORTAL: URGENT DEADLINE WARNING 🚨
 
 Hi Adit,
 
@@ -219,10 +232,12 @@ Manage your applications at: https://placement-portal.onrender.com
 All the best,
 Adit's Placement Portal Team
 """
-                    # Try sending email
-                    success = send_alert_email(subject, email_body)
-                    if success:
-                        SENT_EMAILS[alert_id] = now_dt
+                        # Try sending email
+                        success = send_alert_email(subject, email_body)
+                        if success:
+                            SENT_EMAILS[alert_id] = now_dt
+            else:
+                print("Email alerts are currently PAUSED via portal settings. Skipping email delivery.")
             
             # Console Logging (Bold Neo-Brutalist ASCII alerts)
             if alerts:
