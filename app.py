@@ -917,6 +917,139 @@ def fast_register_confirm():
         
     return redirect(url_for('dashboard'))
 
+@app.route('/analytics')
+def analytics_dashboard():
+    conn = get_db()
+    
+    # Fetch all applications (includes company industry and location)
+    apps = db.get_all_applications(conn=conn)
+    # Fetch all interview rounds
+    all_rounds = db.get_all_interview_rounds(conn=conn)
+    
+    total_apps = len(apps)
+    offer_count = 0
+    rejected_count = 0
+    in_progress_count = 0
+    applied_count = 0
+    
+    match_scores = []
+    success_match_scores = []
+    rejected_match_scores = []
+    
+    industry_counts = {}
+    location_counts = {}
+    round_type_counts = {}
+    
+    # Build set of application IDs with scheduled/completed rounds
+    apps_with_rounds = set(r['application_id'] for r in all_rounds)
+    
+    for app in apps:
+        status = app['status']
+        score = app['jd_match_score'] or 0.0
+        
+        # 1. Status count
+        if status == 'Offer':
+            offer_count += 1
+        elif status == 'Rejected':
+            rejected_count += 1
+        elif status == 'In Progress':
+            in_progress_count += 1
+        else:
+            applied_count += 1
+            
+        # 2. Collect match scores
+        if score > 0.0:
+            match_scores.append(score)
+            if status in ['Offer', 'In Progress'] or app['id'] in apps_with_rounds:
+                success_match_scores.append(score)
+            if status == 'Rejected':
+                rejected_match_scores.append(score)
+                
+        # 3. Industry counts
+        industry = (app['industry_focus'] or 'Technology').strip()
+        industry_counts[industry] = industry_counts.get(industry, 0) + 1
+        
+        # 4. Location counts
+        location = (app['company_location'] or 'Remote').strip()
+        location_counts[location] = location_counts.get(location, 0) + 1
+        
+    # 5. Funnel Progress Counts
+    # Stage 2: Assessment (status in In Progress/Offer/Rejected OR has at least 1 interview round)
+    oa_count = sum(1 for a in apps if a['status'] != 'Applied' or a['id'] in apps_with_rounds)
+    
+    # Stage 3: Interview (has rounds of type other than OA or status Offer)
+    interview_count = 0
+    for a in apps:
+        has_formal_round = any(
+            r['application_id'] == a['id'] and r['round_type'] not in ['Online Assessment', 'OA'] 
+            for r in all_rounds
+        )
+        if has_formal_round or a['status'] == 'Offer':
+            interview_count += 1
+            
+    # Stage 4: Offer (status Offer)
+    # Already computed in offer_count
+    
+    # Calculate conversion metrics
+    interview_conv_rate = (interview_count / total_apps * 100.0) if total_apps > 0 else 0.0
+    offer_rate = (offer_count / total_apps * 100.0) if total_apps > 0 else 0.0
+    
+    avg_match_score = (sum(match_scores) / len(match_scores)) if match_scores else 0.0
+    avg_success_match_score = (sum(success_match_scores) / len(success_match_scores)) if success_match_scores else 0.0
+    avg_rejected_match_score = (sum(rejected_match_scores) / len(rejected_match_scores)) if rejected_match_scores else 0.0
+    
+    # Clean/Sort Distributions
+    sorted_industries = sorted(industry_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    sorted_locations = sorted(location_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    for r in all_rounds:
+        rtype = (r['round_type'] or 'Other').strip()
+        round_type_counts[rtype] = round_type_counts.get(rtype, 0) + 1
+    sorted_round_types = sorted(round_type_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    # Structured funnel metrics
+    funnel = {
+        'applied': {
+            'count': total_apps,
+            'pct': 100.0 if total_apps > 0 else 0.0
+        },
+        'assessment': {
+            'count': oa_count,
+            'pct': (oa_count / total_apps * 100.0) if total_apps > 0 else 0.0
+        },
+        'interview': {
+            'count': interview_count,
+            'pct': (interview_count / total_apps * 100.0) if total_apps > 0 else 0.0
+        },
+        'offer': {
+            'count': offer_count,
+            'pct': (offer_count / total_apps * 100.0) if total_apps > 0 else 0.0
+        }
+    }
+    
+    analytics_data = {
+        'total_apps': total_apps,
+        'offer_count': offer_count,
+        'rejected_count': rejected_count,
+        'in_progress_count': in_progress_count,
+        'applied_count': applied_count,
+        
+        'interview_conv_rate': interview_conv_rate,
+        'offer_rate': offer_rate,
+        
+        'avg_match_score': avg_match_score,
+        'avg_success_match_score': avg_success_match_score,
+        'avg_rejected_match_score': avg_rejected_match_score,
+        
+        'industries': sorted_industries,
+        'locations': sorted_locations,
+        'round_types': sorted_round_types,
+        'funnel': funnel
+    }
+    
+    return render_template('analytics.html', data=analytics_data)
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
+

@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Analytics{% endblock %}
+
+{% block content %}
+<div class="p-8 lg:p-12 flex-1 flex flex-col gap-12 max-w-7xl mx-auto w-full">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-2 border-b-4 border-[#f5f0e8] pb-6">
+        <h1 class="text-6xl md:text-8xl font-headline font-black uppercase tracking-tighter text-[#f5f0e8]">Analytics</h1>
+        <p class="text-xl font-body text-primary-fixed font-bold uppercase tracking-wider">Placement Performance &amp; Pipeline Funnel</p>
+    </div>
+
+    <!-- KPI Bento Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <!-- Card 1: Total Apps -->
+        <div class="bg-[#000000] brutalist-border p-6 flex flex-col justify-between brutalist-shadow-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-headline font-bold uppercase text-[#f5f0e8]">Total<br>Applications</h3>
+                <span class="material-symbols-outlined text-4xl text-primary-fixed" style="font-variation-settings: 'FILL' 1;">widgets</span>
+            </div>
+            <div class="text-6xl font-headline font-black text-primary-fixed">
+                {{ "%02d"|format(data.total_apps) }}
+            </div>
+        </div>
+
+        <!-- Card 2: Interview Conv. Rate -->
+        <div class="bg-[#000000] brutalist-border p-6 flex flex-col justify-between brutalist-shadow-blue hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150 border-[#0055ff]">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-headline font-bold uppercase text-[#f5f0e8]">Interview<br>Rate</h3>
+                <span class="material-symbols-outlined text-4xl text-[#0055ff]" style="font-variation-settings: 'FILL' 1;">speed</span>
+            </div>
+            <div>
+                <div class="text-6xl font-headline font-black text-[#0055ff]">
+                    {{ "%.1f"|format(data.interview_conv_rate) }}%
+                </div>
+                <p class="text-xs font-body text-[#d0cbc3] uppercase font-bold tracking-wider mt-1">Reached interview stage</p>
+            </div>
+        </div>
+
+        <!-- Card 3: Offer Success Rate -->
+        <div class="bg-[#000000] brutalist-border-primary p-6 flex flex-col justify-between brutalist-shadow hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-headline font-bold uppercase text-[#f5f0e8]">Offer<br>Rate</h3>
+                <span class="material-symbols-outlined text-4xl text-primary-fixed" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+            </div>
+            <div>
+                <div class="text-6xl font-headline font-black text-primary-fixed">
+                    {{ "%.1f"|format(data.offer_rate) }}%
+                </div>
+                <p class="text-xs font-body text-[#d0cbc3] uppercase font-bold tracking-wider mt-1">{{ data.offer_count }} Offers secured</p>
+            </div>
+        </div>
+
+        <!-- Card 4: Avg Match Score -->
+        <div class="bg-[#000000] brutalist-border p-6 flex flex-col justify-between brutalist-shadow-red hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-150 border-[#e63b2e]">
+            <div class="flex justify-between items-start mb-6">
+                <h3 class="text-xl font-headline font-bold uppercase text-[#f5f0e8]">Avg Match<br>Score</h3>
+                <span class="material-symbols-outlined text-4xl text-[#e63b2e]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+            </div>
+            <div>
+                <div class="text-6xl font-headline font-black text-[#e63b2e]">
+                    {{ "%.1f"|format(data.avg_match_score) }}%
+                </div>
+                <p class="text-xs font-body text-[#d0cbc3] uppercase font-bold tracking-wider mt-1">ATS resume keyword match</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Funnel Pipeline and AI Insights -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-12">
+        <!-- Pipeline Funnel -->
+        <div class="xl:col-span-2 bg-[#1a1a1a] brutalist-border p-8 brutalist-shadow-white">
+            <h2 class="text-3xl font-headline font-black uppercase text-[#f5f0e8] tracking-tight mb-8 pb-4 border-b-2 border-[#f5f0e8]">
+                Application Funnel Pipeline
+            </h2>
+            
+            <div class="flex flex-col gap-6">
+                <!-- Funnel Step 1: Applied -->
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-[#000000] border-2 border-[#f5f0e8] p-4">
+                    <div class="w-full md:w-36 flex items-center justify-between md:justify-start gap-2 border-r-0 md:border-r-2 border-[#f5f0e8] pr-0 md:pr-4 mb-2 md:mb-0">
+                        <span class="font-headline font-bold uppercase text-lg text-[#f5f0e8]">1. APPLIED</span>
+                        <span class="font-headline font-black text-xl text-primary-fixed bg-[#1a1a1a] border border-[#f5f0e8] px-2 py-0.5">{{ data.funnel.applied.count }}</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-4">
+                        <div class="flex-1 bg-[#1a1a1a] border-2 border-[#f5f0e8] h-8 relative overflow-hidden">
+                            <div class="bg-primary-fixed border-r-2 border-[#f5f0e8] h-full transition-all duration-500" style="width: {{ data.funnel.applied.pct }}%;"></div>
+                            <span class="absolute inset-0 flex items-center justify-center font-headline font-bold text-sm text-[#f5f0e8] mix-blend-difference">100.0% Submission Volume</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Funnel Step 2: Assessment -->
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-[#000000] border-2 border-[#f5f0e8] p-4">
+                    <div class="w-full md:w-36 flex items-center justify-between md:justify-start gap-2 border-r-0 md:border-r-2 border-[#f5f0e8] pr-0 md:pr-4 mb-2 md:mb-0">
+                        <span class="font-headline font-bold uppercase text-lg text-[#f5f0e8]">2. ASSESSED</span>
+                        <span class="font-headline font-black text-xl text-[#0055ff] bg-[#1a1a1a] border border-[#f5f0e8] px-2 py-0.5">{{ data.funnel.assessment.count }}</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-4">
+                        <div class="flex-1 bg-[#1a1a1a] border-2 border-[#f5f0e8] h-8 relative overflow-hidden">
+                            <div class="bg-[#0055ff] border-r-2 border-[#f5f0e8] h-full transition-all duration-500" style="width: {{ data.funnel.assessment.pct }}%;"></div>
+                            <span class="absolute inset-0 flex items-center justify-center font-headline font-bold text-sm text-[#f5f0e8] mix-blend-difference">{{ "%.1f"|format(data.funnel.assessment.pct) }}% (OA or Active Pipeline)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Funnel Step 3: Interview -->
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-[#000000] border-2 border-[#f5f0e8] p-4">
+                    <div class="w-full md:w-36 flex items-center justify-between md:justify-start gap-2 border-r-0 md:border-r-2 border-[#f5f0e8] pr-0 md:pr-4 mb-2 md:mb-0">
+                        <span class="font-headline font-bold uppercase text-lg text-[#f5f0e8]">3. INTERVIEW</span>
+                        <span class="font-headline font-black text-xl text-[#e63b2e] bg-[#1a1a1a] border border-[#f5f0e8] px-2 py-0.5">{{ data.funnel.interview.count }}</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-4">
+                        <div class="flex-1 bg-[#1a1a1a] border-2 border-[#f5f0e8] h-8 relative overflow-hidden">
+                            <div class="bg-[#e63b2e] border-r-2 border-[#f5f0e8] h-full transition-all duration-500" style="width: {{ data.funnel.interview.pct }}%;"></div>
+                            <span class="absolute inset-0 flex items-center justify-center font-headline font-bold text-sm text-[#f5f0e8] mix-blend-difference">{{ "%.1f"|format(data.funnel.interview.pct) }}% (Formal Callbacks)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Funnel Step 4: Offer -->
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-[#000000] border-2 border-[#f5f0e8] p-4">
+                    <div class="w-full md:w-36 flex items-center justify-between md:justify-start gap-2 border-r-0 md:border-r-2 border-[#f5f0e8] pr-0 md:pr-4 mb-2 md:mb-0">
+                        <span class="font-headline font-bold uppercase text-lg text-[#f5f0e8]">4. OFFERS</span>
+                        <span class="font-headline font-black text-xl text-green-500 bg-[#1a1a1a] border border-[#f5f0e8] px-2 py-0.5">{{ data.funnel.offer.count }}</span>
+                    </div>
+                    <div class="flex-1 flex items-center gap-4">
+                        <div class="flex-1 bg-[#1a1a1a] border-2 border-[#f5f0e8] h-8 relative overflow-hidden">
+                            <div class="bg-green-500 border-r-2 border-[#f5f0e8] h-full transition-all duration-500" style="width: {{ data.funnel.offer.pct }}%;"></div>
+                            <span class="absolute inset-0 flex items-center justify-center font-headline font-bold text-sm text-[#f5f0e8] mix-blend-difference">{{ "%.1f"|format(data.funnel.offer.pct) }}% (Final Conversion Rate)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI insights Callout -->
+        <div class="bg-[#000000] brutalist-border-primary p-8 brutalist-shadow flex flex-col justify-between h-full">
+            <div>
+                <div class="flex items-center gap-2 border-b-2 border-primary pb-4 mb-6">
+                    <span class="material-symbols-outlined text-4xl text-primary-fixed" style="font-variation-settings: 'FILL' 1;">insights</span>
+                    <h3 class="text-2xl font-headline font-black uppercase text-[#f5f0e8]">AI ALGORITHMIC<br>CORRELATIONS</h3>
+                </div>
+
+                <div class="flex flex-col gap-6">
+                    <div>
+                        <p class="text-sm font-body uppercase text-[#d0cbc3] font-bold tracking-wider mb-1">Avg Success Match Score</p>
+                        <div class="text-4xl font-headline font-black text-[#0055ff] flex items-baseline gap-2">
+                            <span>{{ "%.1f"|format(data.avg_success_match_score) }}%</span>
+                            <span class="text-xs font-body text-[#d0cbc3] font-normal uppercase">(Offers / Interviews)</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-sm font-body uppercase text-[#d0cbc3] font-bold tracking-wider mb-1">Avg Rejected Match Score</p>
+                        <div class="text-4xl font-headline font-black text-[#e63b2e] flex items-baseline gap-2">
+                            <span>{{ "%.1f"|format(data.avg_rejected_match_score) }}%</span>
+                            <span class="text-xs font-body text-[#d0cbc3] font-normal uppercase">(Rejected)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#1a1a1a] border-2 border-primary p-4 mt-2">
+                        <p class="font-body text-[#f5f0e8] text-sm leading-relaxed">
+                            {% if data.avg_success_match_score > data.avg_rejected_match_score %}
+                                💡 <strong>Insight:</strong> Successful outcomes demonstrate a **{{ "%.1f"|format(data.avg_success_match_score - data.avg_rejected_match_score) }}% higher** ATS match score alignment. High-impact keyword compilation heavily improves your recruiter callback rate!
+                            {% else %}
+                                💡 <strong>Insight:</strong> High-fidelity keyword optimization is essential. Ensure to maintain a JD match score above **80%** using the <strong>Gemini Resume Analyzer</strong> to automatically bypass algorithmic keyword screeners!
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t-2 border-primary pt-4 text-center">
+                <a href="{{ url_for('analyzer') }}" class="inline-block w-full bg-primary-fixed text-primary px-4 py-3 border-2 border-[#1a1a1a] font-headline font-black uppercase tracking-tight text-sm hover:bg-[#ffffff] hover:text-[#000000] transition-colors">
+                    RUN AI ATS ANALYZER
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sector Distribution & Round Category Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 pb-12">
+        <!-- Target Sectors Bar Chart -->
+        <div class="bg-[#1a1a1a] brutalist-border p-8 brutalist-shadow-white">
+            <h3 class="text-3xl font-headline font-black uppercase text-[#f5f0e8] tracking-tight mb-8 pb-4 border-b-2 border-[#f5f0e8]">
+                Target Industry Distribution
+            </h3>
+
+            {% if not data.industries %}
+                <p class="text-center font-headline font-bold text-[#d0cbc3] uppercase">No sector data registered.</p>
+            {% else %}
+                <div class="flex flex-col gap-6">
+                    {% for industry, count in data.industries %}
+                        {% set pct_ind = (count / data.total_apps * 100.0) if data.total_apps > 0 else 0 %}
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center font-headline text-lg uppercase font-bold text-[#f5f0e8]">
+                                <span>{{ industry }}</span>
+                                <span class="text-primary-fixed">{{ count }} Apps ({{ "%.0f"|format(pct_ind) }}%)</span>
+                            </div>
+                            <div class="w-full bg-[#000000] border-2 border-[#f5f0e8] h-6 relative overflow-hidden">
+                                <div class="bg-primary-fixed border-r-2 border-[#f5f0e8] h-full" style="width: {{ pct_ind }}%;"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Geographic Location Distribution -->
+        <div class="bg-[#1a1a1a] brutalist-border p-8 brutalist-shadow-white">
+            <h3 class="text-3xl font-headline font-black uppercase text-[#f5f0e8] tracking-tight mb-8 pb-4 border-b-2 border-[#f5f0e8]">
+                Target Geographic Map
+            </h3>
+
+            {% if not data.locations %}
+                <p class="text-center font-headline font-bold text-[#d0cbc3] uppercase">No location data registered.</p>
+            {% else %}
+                <div class="flex flex-col gap-6">
+                    {% for location, count in data.locations %}
+                        {% set pct_loc = (count / data.total_apps * 100.0) if data.total_apps > 0 else 0 %}
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center font-headline text-lg uppercase font-bold text-[#f5f0e8]">
+                                <span>📍 {{ location }}</span>
+                                <span class="text-[#0055ff]">{{ count }} Apps ({{ "%.0f"|format(pct_loc) }}%)</span>
+                            </div>
+                            <div class="w-full bg-[#000000] border-2 border-[#f5f0e8] h-6 relative overflow-hidden">
+                                <div class="bg-[#0055ff] border-r-2 border-[#f5f0e8] h-full" style="width: {{ pct_loc }}%;"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Interview Types Breakdown -->
+    <div class="bg-[#1a1a1a] brutalist-border p-8 brutalist-shadow-white mb-12">
+        <h3 class="text-3xl font-headline font-black uppercase text-[#f5f0e8] tracking-tight mb-8 pb-4 border-b-2 border-[#f5f0e8]">
+            Scheduled Interview Categories
+        </h3>
+
+        {% if not data.round_types %}
+            <p class="text-center font-headline font-bold text-[#d0cbc3] uppercase">No interviews scheduled yet.</p>
+        {% else %}
+            <div class="flex flex-wrap gap-4">
+                {% for rtype, count in data.round_types %}
+                    <div class="bg-[#000000] border-2 border-primary-fixed px-5 py-4 brutalist-shadow flex flex-col items-center justify-center min-w-[150px] flex-1 text-center">
+                        <span class="text-sm font-body uppercase text-[#d0cbc3] font-black tracking-wide">{{ rtype }}</span>
+                        <span class="text-4xl font-headline font-black text-primary-fixed mt-2">{{ count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
