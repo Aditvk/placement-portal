@@ -2,7 +2,10 @@ import os
 import threading
 import time
 import json
+import smtplib
+from email.mime.text import MIMEText
 from datetime import datetime, timedelta, date
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, g
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -64,6 +67,45 @@ def parse_db_datetime(val):
 
 # Global list for background alerts
 ACTIVE_ALERTS = []
+
+# Track emailed alerts to prevent inbox spam (ID -> datetime of last email)
+SENT_EMAILS = {}
+
+def send_alert_email(subject, text_body):
+    """Sends an email notification using SMTP configuration from environment variables."""
+    smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+    smtp_port_str = os.environ.get('SMTP_PORT', '587')
+    smtp_username = os.environ.get('SMTP_USERNAME')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    receiver_email = os.environ.get('RECEIVER_EMAIL', 'aditvk27@gmail.com')
+    
+    if not smtp_username or not smtp_password:
+        # Graceful degradation if credentials are not configured yet
+        print("SMTP credentials (username/password) not fully configured. Skipping email delivery.")
+        return False
+        
+    try:
+        smtp_port = int(smtp_port_str)
+    except ValueError:
+        smtp_port = 587
+        
+    try:
+        msg = MIMEText(text_body)
+        msg['Subject'] = subject
+        msg['From'] = smtp_username
+        msg['To'] = receiver_email
+        
+        # Connect to server using TLS
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        server.sendmail(smtp_username, [receiver_email], msg.as_string())
+        server.quit()
+        print(f"Email alert successfully sent to {receiver_email}!")
+        return True
+    except Exception as e:
+        print(f"Error sending email alert: {e}")
+        return False
 
 def run_deadline_checker():
     """Background thread that runs every 60 seconds and scans for application deadlines and scheduled interviews in the next 48 hours."""
@@ -148,6 +190,39 @@ def run_deadline_checker():
             
             global ACTIVE_ALERTS
             ACTIVE_ALERTS = alerts
+            
+            # Process email alerts for new critical alerts
+            global SENT_EMAILS
+            for alert in alerts:
+                alert_id = alert['id']
+                last_sent = SENT_EMAILS.get(alert_id)
+                now_dt = datetime.now()
+                
+                # Check if it was never sent, or sent more than 12 hours ago
+                if last_sent is None or (now_dt - last_sent) > timedelta(hours=12):
+                    urgency_indicator = "CRITICAL" if alert['urgency'] == 'high' else "UPCOMING"
+                    subject = f"🚨 PLACEMENT PORTAL: [{urgency_indicator}] Deadline Alert for {alert['company']}!"
+                    
+                    email_body = f"""🚨 PLACEMENT PORTAL: URGENT DEADLINE WARNING 🚨
+
+Hi Adit,
+
+You have a critical milestone approaching in the next 48 hours:
+
+[{urgency_indicator}] {alert['type']} - {alert['company']}
+- Milestone: {alert['item']}
+- Due/Scheduled: {alert['time']}
+- Time Remaining: {alert['time_remaining']} left
+
+Manage your applications at: https://placement-portal.onrender.com
+
+All the best,
+Adit's Placement Portal Team
+"""
+                    # Try sending email
+                    success = send_alert_email(subject, email_body)
+                    if success:
+                        SENT_EMAILS[alert_id] = now_dt
             
             # Console Logging (Bold Neo-Brutalist ASCII alerts)
             if alerts:
