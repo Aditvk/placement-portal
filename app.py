@@ -3,7 +3,7 @@ import threading
 import time
 import json
 from datetime import datetime, timedelta, date
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, g
 import google.generativeai as genai
 from dotenv import load_dotenv
 import colorama
@@ -21,6 +21,17 @@ import db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "neo-brutalist-secret-key-1928")
+
+def get_db():
+    if 'db_conn' not in g:
+        g.db_conn = db.get_db_connection()
+    return g.db_conn
+
+@app.teardown_appcontext
+def close_db(e=None):
+    db_conn = g.pop('db_conn', None)
+    if db_conn is not None:
+        db_conn.close()
 
 # Register context processor to make db_type available in templates
 @app.context_processor
@@ -169,22 +180,35 @@ def inject_alerts():
 # Routing Logic
 @app.route('/')
 def dashboard():
-    # 1. Fetch dashboard statistics
-    stats = db.get_dashboard_stats()
-    apps = db.get_all_applications()
+    # 0. Get single request-scoped database connection
+    conn = get_db()
+
+    # 1. Fetch dashboard statistics and applications using the shared connection
+    stats = db.get_dashboard_stats(conn=conn)
+    apps = db.get_all_applications(conn=conn)
     
+    # 2. Bulk fetch all raw interview rounds using the shared connection
+    all_rounds = db.get_all_interview_rounds(conn=conn)
+    
+    # Map application_id to its latest round type using Python in-memory grouping
+    latest_rounds = {}
+    for r in all_rounds:
+        app_id = r['application_id']
+        r_num = r['round_number']
+        r_type = r['round_type']
+        if app_id not in latest_rounds or r_num > latest_rounds[app_id]['round_number']:
+            latest_rounds[app_id] = {'round_number': r_num, 'round_type': r_type}
+
     # Enrich apps with latest round info
     enriched_apps = []
     for app_row in apps:
         app_dict = dict(app_row)
-        latest_round = db.get_latest_round_badge(app_row['id'])
-        app_dict['latest_round'] = latest_round or 'Applied'
+        badge_info = latest_rounds.get(app_row['id'])
+        app_dict['latest_round'] = badge_info['round_type'] if badge_info else 'Applied'
         enriched_apps.append(app_dict)
     
-    # 2. Get upcoming chronological items for the "Action Required" Widget
-    # We combine application deadlines and interview rounds sorted chronologically (showing only upcoming ones)
+    # 3. Get upcoming chronological items for the "Action Required" Widget
     upcoming_items = []
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Applications
     for app_row in apps:
@@ -197,8 +221,8 @@ def dashboard():
                 'badge': 'Deadline'
             })
             
-    # Interview rounds
-    rounds = db.get_all_interviews()
+    # Interview rounds (uses shared connection)
+    rounds = db.get_all_interviews(conn=conn)
     for rnd in rounds:
         upcoming_items.append({
             'title': f"{rnd['company_name']} Round {rnd['round_number']}",
@@ -230,15 +254,26 @@ def dashboard():
 
 @app.route('/applications')
 def applications_list():
-    apps = db.get_all_applications()
-    companies = db.get_all_companies()
+    conn = get_db()
+    apps = db.get_all_applications(conn=conn)
+    companies = db.get_all_companies(conn=conn)
+    
+    # Bulk fetch all raw interview rounds using the shared connection
+    all_rounds = db.get_all_interview_rounds(conn=conn)
+    
+    # Group the interview rounds by application_id in memory
+    rounds_by_app = {}
+    for r in all_rounds:
+        app_id = r['application_id']
+        if app_id not in rounds_by_app:
+            rounds_by_app[app_id] = []
+        rounds_by_app[app_id].append(dict(r))
     
     # Enrich applications with their interview rounds
     enriched_apps = []
     for app_row in apps:
         app_dict = dict(app_row)
-        rounds = db.get_interviews_for_application(app_row['id'])
-        app_dict['rounds'] = [dict(r) for r in rounds]
+        app_dict['rounds'] = rounds_by_app.get(app_row['id'], [])
         enriched_apps.append(app_dict)
         
     return render_template('applications.html', applications=enriched_apps, companies=companies)

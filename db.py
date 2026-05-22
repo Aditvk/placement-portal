@@ -227,15 +227,22 @@ def get_or_create_company(name, location=None, industry_focus=None):
     conn.close()
     return company_id
 
-def get_all_companies():
-    conn = get_db_connection()
+def get_all_companies(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
     companies = conn.execute("SELECT * FROM companies ORDER BY name ASC").fetchall()
-    conn.close()
+    if close_at_end:
+        conn.close()
     return companies
 
 # Application Helpers
-def get_all_applications():
-    conn = get_db_connection()
+def get_all_applications(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
     query = """
         SELECT a.*, c.name as company_name, c.location as company_location, c.industry_focus 
         FROM applications a
@@ -243,7 +250,8 @@ def get_all_applications():
         ORDER BY a.deadline_date ASC
     """
     apps = conn.execute(query).fetchall()
-    conn.close()
+    if close_at_end:
+        conn.close()
     return apps
 
 def get_application_by_id(app_id):
@@ -310,8 +318,21 @@ def get_interviews_for_application(app_id):
     conn.close()
     return rounds
 
-def get_all_interviews():
-    conn = get_db_connection()
+def get_all_interview_rounds(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
+    rounds = conn.execute("SELECT * FROM interview_rounds ORDER BY round_number ASC").fetchall()
+    if close_at_end:
+        conn.close()
+    return rounds
+
+def get_all_interviews(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
     query = """
         SELECT r.*, a.role_title, c.name as company_name 
         FROM interview_rounds r
@@ -320,7 +341,8 @@ def get_all_interviews():
         ORDER BY r.scheduled_time ASC
     """
     rounds = conn.execute(query).fetchall()
-    conn.close()
+    if close_at_end:
+        conn.close()
     return rounds
 
 def add_interview_round(application_id, round_number, round_type, scheduled_time, notes):
@@ -352,8 +374,11 @@ def get_latest_round_badge(app_id):
     return row['round_type'] if row else None
 
 # Aggregate Stats Helper
-def get_dashboard_stats():
-    conn = get_db_connection()
+def get_dashboard_stats(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
     
     total_apps = conn.execute("SELECT COUNT(*) FROM applications").fetchone()[0]
     
@@ -363,7 +388,8 @@ def get_dashboard_stats():
         (now_str,)
     ).fetchone()[0]
     
-    conn.close()
+    if close_at_end:
+        conn.close()
     return {
         'total_apps': total_apps,
         'active_interviews': active_interviews
